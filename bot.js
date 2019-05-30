@@ -42,20 +42,23 @@ controller.on('message', async(bot, message) => {
         await bot.reply(message, 'Let me check...');
         request('https://opentdb.com/api.php?amount=5&category=9&difficulty=medium&type=multiple', function (error, response, body) {
         if (!error) {
-            parseResult(message, bot, body);
+           results = JSON.parse(body);
         }  else {
         console.log(error);
     }
 })
+        await bot.reply(message, results.results[0].question);
       }
     }
 });
 
-var parseResult = async (message, bot, html) => {
-  let results = JSON.parse(html);
-  var i;
-  for (i = 0; i < numQuestions; i++) { 
-    console.log(results.results[i].question)
-  }  
-  //console.log(results);
-};
+// var parseResult = async (message, bot, html) => {
+//   let results = JSON.parse(html);
+//   var i;
+//   for (i = 0; i < numQuestions; i++) { 
+//     console.log(results.results[i].question);
+//   }
+//   await bot.reply('Hi');
+//   return;
+//   //console.log(results);
+// };
