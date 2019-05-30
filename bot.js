@@ -46,7 +46,7 @@ controller.on('message', async(bot, message) => {
       else if(query.includes('hit me')){
         res = null;
         console.log("hit me");
-        request('https://opentdb.com/api.php?amount=1&type=multiple&encode=base64&token=6893a0d72cdc7f72d0268acd92f779a96e5e5b21b5bea51411d4f172cb15ddec', function (error, response, body) {
+        request('https://opentdb.com/api.php?amount=1&difficulty=medium&type=multiple&encode=base64&token=6893a0d72cdc7f72d0268acd92f779a96e5e5b21b5bea51411d4f172cb15ddec', function (error, response, body) {
             if (!error) {
                results = JSON.parse(body);
             }  else {
@@ -64,7 +64,7 @@ controller.on('message', async(bot, message) => {
        // console.log(results.results[0].question);
         console.log(correct);
         console.log(incorrect);
-        var choices = correct.concat(incorrect);
+        choices = correct.concat(incorrect);
         console.log(choices);
         choices = shuffle(choices);
        // console.log(choices);
@@ -74,14 +74,17 @@ controller.on('message', async(bot, message) => {
           {
             console.log(choices[i]);
             //wait bot.reply()
-            await bot.reply(message, choices[i]);
+            await bot.reply(message, (i+1) + ". " + choices[i]);
           }
       }
        else if(query.includes('answer')){
          console.log("answer");
          //await bot.reply(message, "Answer:");
-         console.log(correct[0]);
-         await bot.reply(message, "Answer: " + correct[0]);
+         let correct_answer = "";
+         correct_answer = correct[0];
+         console.log(correct_answer);
+         var correctNum = choices.indexOf(correct_answer) + 1;
+         await bot.reply(message, "Answer: " + correctNum + ". " + correct_answer);
        }
     }
 });
