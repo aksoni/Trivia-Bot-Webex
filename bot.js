@@ -46,7 +46,7 @@ controller.on('message', async(bot, message) => {
       else if(query.includes('hit me')){
         res = null;
         console.log("hit me");
-        request('https://opentdb.com/api.php?amount=10&category=9&difficulty=medium&type=multiple&encode=base64', function (error, response, body) {
+        request('https://opentdb.com/api.php?amount=1&type=multiple&encode=base64&token=6893a0d72cdc7f72d0268acd92f779a96e5e5b21b5bea51411d4f172cb15ddec', function (error, response, body) {
             if (!error) {
                results = JSON.parse(body);
             }  else {
