@@ -6,8 +6,11 @@ const { MongoDbStorage } = require('botbuilder-storage-mongodb');
 //const JSON = require('json');
 
 var request = require('request');
+var atob = require('atob');
 var results;
 var choices;
+var correct;
+var res;
 
 require('dotenv').config();
 let storage = null;
@@ -41,25 +44,28 @@ controller.on('message', async(bot, message) => {
         await bot.reply(message, 'Usage: @triviagame hit me');
       }    
       else if(query.includes('hit me')){
-       
-        request('https://opentdb.com/api.php?amount=1&category=9&difficulty=medium&type=multiple', function (error, response, body) {
-        if (!error) {
-           results = JSON.parse(body);
-        }  else {
-        console.log(error);
-    }
-          
-})
-        await bot.reply(message, "Question:");
-        await bot.reply(message, results.results[0].question);
-        console.log(results.results[0].correct_answer);
-        var correct = [results.results[0].correct_answer];
-        var incorrect = results.results[0].incorrect_answers;
-        console.log(results.results[0].question);
-        // console.log(correct);
-        // console.log(incorrect);
-        choices = correct.concat(incorrect);
-        //@console.log(choices);
+        res = null;
+        console.log("hit me");
+        request('https://opentdb.com/api.php?amount=10&category=9&difficulty=medium&type=multiple&encode=base64', function (error, response, body) {
+            if (!error) {
+               results = JSON.parse(body);
+            }  else {
+            console.log(error);
+            }
+        })
+        //await bot.reply(message, "Question:");
+        res = results.results[0];
+        var decode =  atob(res.question);
+        console.log(decode);
+        await bot.reply(message, "Question: " + decode);//results.results[0].question);
+        //console.log(results.results[0].correct_answer);
+        correct = [atob(res.correct_answer)];
+        var incorrect = [atob(res.incorrect_answers[0]), atob(res.incorrect_answers[1]), atob(res.incorrect_answers[2])];
+       // console.log(results.results[0].question);
+        console.log(correct);
+        console.log(incorrect);
+        var choices = correct.concat(incorrect);
+        console.log(choices);
         choices = shuffle(choices);
        // console.log(choices);
         //await bot.reply(message, choices);
@@ -72,9 +78,10 @@ controller.on('message', async(bot, message) => {
           }
       }
        else if(query.includes('answer')){
-         await bot.reply(message, "Answer:");
-         //console.log(results.results[0].correct_answer)
-         await bot.reply(message, results.results[0].correct_answer);
+         console.log("answer");
+         //await bot.reply(message, "Answer:");
+         console.log(correct[0]);
+         await bot.reply(message, "Answer: " + correct[0]);
        }
     }
 });
