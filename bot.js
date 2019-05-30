@@ -1,0 +1,61 @@
+// Import Botkit
+const { Botkit } = require('botkit');
+const { WebexAdapter } = require('botbuilder-adapter-webex');
+const { BotkitCMSHelper } = require('botkit-plugin-cms');
+const { MongoDbStorage } = require('botbuilder-storage-mongodb');
+//const JSON = require('json');
+
+var request = require('request');
+
+require('dotenv').config();
+let storage = null;
+if (process.env.MONGO_URI) {
+    storage = mongoStorage = new MongoDbStorage({
+        url : process.env.MONGO_URI,
+    });
+}
+
+const numQuestions = 5;
+const adapter = new WebexAdapter({
+    access_token: process.env.access_token,
+    public_address: process.env.public_address,
+    secret: process.env.secret
+})
+
+
+const controller = new Botkit({
+    webhook_name: 'WeatherBot',
+    adapter: adapter,
+    storage
+
+});
+
+controller.on('message', async(bot, message) => {
+     if(message.text){
+      const query = message.text.trim();
+      if(query.includes('help')) {
+        await bot.reply(message, 'Hi! I\'m Trivia Timmy! I will ask trivia questions in the category you select.');
+        await bot.reply(message, 'Usage: @triviagame[category]');
+      }    
+      else {
+        let results;
+        await bot.reply(message, 'Let me check...');
+        request('https://opentdb.com/api.php?amount=5&category=9&difficulty=medium&type=multiple', function (error, response, body) {
+        if (!error) {
+            parseResult(message, bot, body);
+        }  else {
+        console.log(error);
+    }
+})
+      }
+    }
+});
+
+var parseResult = async (message, bot, html) => {
+  let results = JSON.parse(html);
+  var i;
+  for (i = 0; i < numQuestions; i++) { 
+    console.log(results.results[i].question)
+  }  
+  //console.log(results);
+};
