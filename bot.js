@@ -35,30 +35,19 @@ controller.on('message', async(bot, message) => {
       const query = message.text.trim();
       if(query.includes('help')) {
         await bot.reply(message, 'Hi! I\'m Trivia Timmy! I will ask trivia questions in the category you select.');
-        await bot.reply(message, 'Usage: @triviagame[category]');
+        await bot.reply(message, 'Usage: @triviagame hit me');
       }    
-      else {
+      else if(query.includes('hit me')){
         let results;
-        await bot.reply(message, 'Let me check...');
-        request('https://opentdb.com/api.php?amount=5&category=9&difficulty=medium&type=multiple', function (error, response, body) {
+        request('https://opentdb.com/api.php?amount=1&category=9&difficulty=medium&type=multiple', function (error, response, body) {
         if (!error) {
            results = JSON.parse(body);
         }  else {
         console.log(error);
     }
 })
+        await bot.reply(message, "Question:")
         await bot.reply(message, results.results[0].question);
       }
     }
 });
-
-// var parseResult = async (message, bot, html) => {
-//   let results = JSON.parse(html);
-//   var i;
-//   for (i = 0; i < numQuestions; i++) { 
-//     console.log(results.results[i].question);
-//   }
-//   await bot.reply('Hi');
-//   return;
-//   //console.log(results);
-// };
