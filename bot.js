@@ -29,61 +29,45 @@ const adapter = new WebexAdapter({
 
 
 const controller = new Botkit({
-    webhook_name: 'WeatherBot',
+    webhook_name: 'TriviaBot',
     adapter: adapter,
     storage
 
 });
 
 controller.on('message', async(bot, message) => {
-   //let results;
      if(message.text){
-      const query = message.text.trim();
-      if(query.includes('help')) {
-        await bot.reply(message, 'Hi! I\'m Trivia Timmy! I will ask trivia questions in the category you select.');
-        await bot.reply(message, 'Usage: @triviagame hit me');
+       console.log(message);
+       const query = message.text.trim();
+       const email = message.personEmail;
+       const firstName_lower = email.substr(0, email.indexOf('.'));
+       const firstName = firstName_lower.charAt(0).toUpperCase() + firstName_lower.slice(1)
+       if(query.includes('help')) {
+         await bot.reply(message, 'Hi, ' + firstName + '! I\'m Trivia Timmy! I will ask trivia questions and you will have to choose from the 4 choices given.');
+         await bot.reply(message, 'Usage: @trivia hit me');
       }    
       else if(query.includes('hit me')){
         res = null;
-        console.log("hit me");
         let response = await fetch('https://opentdb.com/api.php?amount=1&difficulty=medium&type=multiple&encode=base64&token=6893a0d72cdc7f72d0268acd92f779a96e5e5b21b5bea51411d4f172cb15ddec');
         response = await response.json();
-        // request('https://opentdb.com/api.php?amount=1&difficulty=medium&type=multiple&encode=base64&token=6893a0d72cdc7f72d0268acd92f779a96e5e5b21b5bea51411d4f172cb15ddec', function (error, response, body) {
-        //     if (!error) {
-        //        results = JSON.parse(body);
-        //     }  else {
-        //     console.log(error);
-        //     }
-        // })
-        //await bot.reply(message, "Question:");
-       // console.log("response" + response);
+   
         results = response.results[0]
-        //console.log("results: " + results);
-    //     res = results.results[0];
-         var decode =  atob(results.question);
-         console.log("question " + decode);
-         await bot.reply(message, "Question: " + decode);
-    //     //console.log(results.results[0].correct_answer);
-         correct = [atob(results.correct_answer)];
-         var incorrect = [atob(results.incorrect_answers[0]), atob(results.incorrect_answers[1]), atob(results.incorrect_answers[2])];
-    //    // console.log(results.results[0].question);
-         console.log("correct answer: " + correct);
-         console.log("incorrect choices: " + incorrect);
-         choices = correct.concat(incorrect);
-         console.log("all choices: " + choices);
-         choices = shuffle(choices);
-         console.log("shuffled choices: " + choices);
+        var decode =  atob(results.question);
+        await bot.reply(message, "Question: " + decode);
+        correct = [atob(results.correct_answer)];
+        var incorrect = [atob(results.incorrect_answers[0]), atob(results.incorrect_answers[1]), atob(results.incorrect_answers[2])];
+
+        choices = correct.concat(incorrect);
+
+        choices = shuffle(choices);
          var i;
          for(i = 0; i < choices.length; i++){
             await bot.reply(message, (i+1) + ". " + choices[i]);
          }
       }
        else if(query.includes('answer')){
-         console.log("answer");
-         //await bot.reply(message, "Answer:");
          let correct_answer = "";
          correct_answer = correct[0];
-         console.log(correct_answer);
          var correctNum = choices.indexOf(correct_answer) + 1;
          await bot.reply(message, "Answer: " + correctNum + ". " + correct_answer);
        }
