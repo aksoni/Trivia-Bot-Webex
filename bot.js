@@ -10,6 +10,7 @@ var atob = require('atob');
 
 var choices;
 var correct;
+var letters = "ABCD";
 
 
 //require('dotenv').config();
@@ -60,19 +61,25 @@ controller.on('message', async(bot, message) => {
         choices = correct.concat(incorrect);
 
         choices = shuffle(choices);
-        let question_string = firstName + ", " + question + "\n\n";
-        question_string += "1. " + choices[0];
-        for(let i = 1; i < choices.length; i++){
-            question_string = question_string + "\n" + (i+1) + ". " + choices[i];
+        let question_string = firstName + ", " + question + "\n";
+        //question_string += "1. " + choices[0];
+        for(let i = 0; i < choices.length; i++){
+            question_string = question_string + "\n" + letters.charAt(i) + ". " + choices[i];
             //await bot.reply(message, (i+1) + ". \n" + choices[i]);
          }
         await bot.reply(message, question_string);
       }
        else if(query.includes('answer')){
-         let correct_answer = "";
-         correct_answer = correct[0];
-         let correctNum = choices.indexOf(correct_answer) + 1;
-         await bot.reply(message, "Answer: " + correctNum + ". " + correct_answer);
+         let selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim();
+         //let correctAnswer = "";
+         let correctAnswer = correct[0];
+         let correctLetter = letters.charAt(choices.indexOf(correctAnswer));
+         if(selectedChoice === correctLetter) {
+           await bot.reply(message, "Good job, " + firstName + ", " + correctAnswer + " is correct!")
+}
+         else {
+           await bot.reply(message, "Sorry, " + firstName + ", that is incorrect. The correct answer is " + correctAnswer + ".");
+         }
        }
      }
 });
