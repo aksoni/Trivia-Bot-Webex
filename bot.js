@@ -93,7 +93,7 @@ controller.on('message', async(bot, message) => {
             questionString = questionString + "\n" + letters.charAt(i) + ". " + choices[i];
             //await bot.reply(message, (i+1) + ". \n" + choices[i]);
          }
-     //   addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString)
+        addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString)
         await bot.reply(message, questionString);
       }
        else if(query.includes('answer')){
@@ -111,6 +111,9 @@ controller.on('message', async(bot, message) => {
        }
        else if(query.includes("clearDb")) {
          clearRoom();
+       }
+       else if(query.includes("checkDb")) {
+         checkDb(message);
        }
      }
 });
@@ -146,27 +149,93 @@ function getRoom(message) {
 
     console.log("Room id: " + message.roomId)
 
-    rooms.insert(room, function(err, result) {
+    rooms.insert(room, async function(err, result) {
 
       if(err) throw err;
 
       console.log("insertion success")
 
-      rooms.find({}).toArray(function(err, result) {
+      await rooms.find({}).toArray(function(err, result) {
         if (err) throw err;
         console.log(result);
         db.close();
       });
       console.log("second test")
-      rooms.find({roomId: message.roomId}).toArray(function(err, result) {
-        if (err) throw err;
-        console.log("Found room id: " + message.roomId);
+      await rooms.find({roomId: message.roomId}, function(err, doc) {
+        if (doc.length === 'undefined' ||err) {
+          console.log("room not found")
+        }
+        
+        else {
+          console.log(doc.length + " is the doc length")
+          console.log(doc)
+          console.log("Found room id: " + message.roomId);
+        }
         db.close();
       });
     });
   });
 }
 
+function addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString) {
+
+
+  mongodb.MongoClient.connect(uri, function(err, db) {
+    if(err) throw err;
+    const triviaDatabase = db.db('trivia')
+    var rooms = triviaDatabase.collection('rooms');
+   //  rooms.drop();
+    var room = [
+      {
+        roomId: message.roomId,
+        currentPlayer: message.personId,
+        currentQuestion: question,
+        currentAnswerLetter: correctAnswerLetter,
+        currentAnswerString: correctAnswerString,
+        allPlayers:''
+      }
+    ]
+
+    console.log("Room id: " + message.roomId)
+
+    rooms.insert(room, function(err, result) {
+
+      if(err) throw err;
+
+      console.log("insertion success")
+      
+      // rooms.find({}).toArray(function(err, result) {
+      //   if (err) throw err;
+      //   console.log(result);
+      //   db.close();
+      // });
+    });
+    
+    rooms.find({}).toArray(function(err, result) {
+        if (err) throw err;
+        console.log(result);
+        db.close();
+      });
+  });
+}
+
+function checkDb(message) {
+  mongodb.MongoClient.connect(uri, function(err, db) {
+    if(err) throw err;
+    const triviaDatabase = db.db('trivia')
+    var rooms = triviaDatabase.collection('rooms');
+    
+    rooms.find(message.roomId).toArray(function(err, result) {
+        if (result.length === 0 || err) {
+          console.log("Room not found.")
+        }
+        else {
+          console.log(result);
+        }
+        db.close();
+      });
+  });
+}
 
 
 function shuffle(a) {
