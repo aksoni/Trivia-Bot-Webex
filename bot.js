@@ -8,8 +8,10 @@ var request = require('request');
 var atob = require('atob');
 
 var choices;
-var correct;
+var correctAnswerString;
 var letters = "ABCD";
+var uri = "mongodb+srv://" + process.env.dbuser + ":" + process.env.dbpassword + "@cluster0-vblnv.mongodb.net/trivia?retryWrites=true&w=majority";
+
 //var dbSongs = ""
 
 
@@ -40,8 +42,7 @@ const controller = new Botkit({
 controller.on('message', async(bot, message) => {
      if(message.text){
        console.log(message);
-       getRoom(message);
-       console.log
+       //getRoom(message);
        const query = message.text.trim();
        const email = message.personEmail;
        const id = message.personId;
@@ -78,42 +79,53 @@ controller.on('message', async(bot, message) => {
         response = await response.json();
    
         let results = response.results[0]
-        //console.log(results);
         let question =  atob(results.question);
-       // let question = decodedQuestion.charAt(0).toLowerCase() + decoded_question.slice(1);
-        //await bot.reply(message, "Question: " + decode);
-        correct = [atob(results.correct_answer).trim()];
-        let incorrect = [atob(results.incorrect_answers[0].trim()), atob(results.incorrect_answers[1].trim()), atob(results.incorrect_answers[2].trim())];
+        correctAnswerString = atob(results.correct_answer).trim();
+        let incorrectStrings = [atob(results.incorrect_answers[0].trim()), atob(results.incorrect_answers[1].trim()), atob(results.incorrect_answers[2].trim())];
 
-        choices = correct.concat(incorrect);
+        choices = [correctAnswerString].concat(incorrectStrings);
 
         choices = shuffle(choices);
+        let correctAnswerLetter = letters.charAt(choices.indexOf(correctAnswerString));
         let questionString = firstName + ", " + question + "\n";
         //question_string += "1. " + choices[0];
         for(let i = 0; i < choices.length; i++){
             questionString = questionString + "\n" + letters.charAt(i) + ". " + choices[i];
             //await bot.reply(message, (i+1) + ". \n" + choices[i]);
          }
+     //   addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString)
         await bot.reply(message, questionString);
       }
        else if(query.includes('answer')){
          let selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim();
          //let correctAnswer = "";
-         let correctAnswer = correct[0];
-         let correctLetter = letters.charAt(choices.indexOf(correctAnswer));
+        // let correctAnswer = correctAnswerString[0];
+         let correctLetter = letters.charAt(choices.indexOf(correctAnswerString));
          if(selectedChoice === correctLetter) {
-           await bot.reply(message, "Good job, " + firstName + ", " + correctLetter + " - " + correctAnswer + " is correct!")
+           await bot.reply(message, "Good job, " + firstName + ", " + correctLetter + " - " + correctAnswerString + " is correct!")
 }
          else {
            await bot.reply(message, "Sorry, " + firstName + ", that is incorrect. The correct answer is " + 
-                           correctLetter + " - " + correctAnswer + ".");
+                           correctLetter + " - " + correctAnswerString + ".");
          }
+       }
+       else if(query.includes("clearDb")) {
+         clearRoom();
        }
      }
 });
 
+function clearRoom() {
+  mongodb.MongoClient.connect(uri, function(err, db) {
+    if(err) throw err;
+    const triviaDatabase = db.db('trivia')
+    var rooms = triviaDatabase.collection('rooms');
+    rooms.drop();
+    console.log("rooms dropped")
+  });
+}
+
 function getRoom(message) {
-  var uri = "mongodb+srv://" + process.env.dbuser + ":" + process.env.dbpassword + "@cluster0-vblnv.mongodb.net/trivia?retryWrites=true&w=majority";
 
 
   mongodb.MongoClient.connect(uri, function(err, db) {
@@ -124,9 +136,10 @@ function getRoom(message) {
     var room = [
       {
         roomId: message.roomId,
-        currentQuestion: '',
-        currentAnswer: '',
         currentPlayer: '',
+        currentQuestion: '',
+        currentAnswerLetter: '',
+        currentAnswerString: '',
         allPlayers:''
       }
     ]
