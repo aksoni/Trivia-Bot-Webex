@@ -12,15 +12,7 @@ var correctAnswerString;
 var letters = "ABCD";
 var uri = "mongodb+srv://" + process.env.dbuser + ":" + process.env.dbpassword + "@cluster0-vblnv.mongodb.net/trivia?retryWrites=true&w=majority";
 
-//var dbSongs = ""
-
-
 // Standard URI format: mongodb://[dbuser:dbpassword@]host:port/dbname, details set in .env
-
-                            
-                            
-
-
 //require('dotenv').config();
 //let storage = ;
 
@@ -103,16 +95,14 @@ controller.on('message', async(bot, message) => {
          //let correctLetter;
         // let correctAnswerString;
          var testCorrect;
-         await getCorrectAnswer(message, async function(answers) {
+         getCorrectAnswer(message, function(message, answers) {
             console.log("letter: " + answers.correctAnswerLetter)
             console.log("string: " + answers.correctAnswerString)
             //bot.say("why")
             //testCorrect = answers.correctAnswerLetter;
             //printCorrect(bot)
-           // await bot.reply(message, "Checking answer test")
+            //await bot.reply(message, "Checking answer test")
          });
-         console.log("test correct")
-        console.log(testCorrect);
          // console.log("correct letter from method", testcorrectLetter)
          // console.log("correct answer string from method", testcorrectAnswerString)
          let correctLetter = letters.charAt(choices.indexOf(correctAnswerString));
@@ -242,31 +232,6 @@ function addQuestionToDB(message, question, correctAnswerLetter, correctAnswerSt
         }
         db.close();
       });
-    // var room = [
-    //   {
-    //     roomId: message.roomId,
-    //     currentPlayer: message.personId,
-    //     currentQuestion: question,
-    //     currentAnswerLetter: correctAnswerLetter,
-    //     currentAnswerString: correctAnswerString,
-    //     allPlayers:''
-    //   }
-    // ]
-
-//     console.log("Room id: " + message.roomId)
-
-//     rooms.insert(room, function(err, result) {
-
-//       if(err) throw err;
-
-//       console.log("insertion success")
-//     });
-    
-//     rooms.find({}).toArray(function(err, result) {
-//         if (err) throw err;
-//         console.log(result);
-//         db.close();
-//       });
   });
 }
 
@@ -289,13 +254,13 @@ function checkDb(message) {
   });
 }
 
-async function getCorrectAnswer(message, callback) {
+function getCorrectAnswer(message, callback) {
   mongodb.MongoClient.connect(uri, async function(err, db) {
     if(err) throw err;
     const triviaDatabase = db.db('trivia')
     var rooms = triviaDatabase.collection('rooms');
     
-    await rooms.find({roomId:message.roomId}).toArray(async function(err, result) {
+    await rooms.find({roomId:message.roomId}).toArray(function(err, result) {
         if (result.length === 0 || err) {
           console.log("Room not found.")
         }
@@ -306,7 +271,7 @@ async function getCorrectAnswer(message, callback) {
           console.log(result[0].currentAnswerString)
           var answers = {correctAnswerLetter: result[0].currentAnswerLetter, correctAnswerString: result[0].currentAnswerString}
           console.log(answers)
-          await callback(answers)
+          callback(message, answers)
           // try {
           //   await callback(answers)
           // }
