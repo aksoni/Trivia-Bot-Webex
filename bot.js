@@ -7,14 +7,11 @@ const mongodb = require('mongodb')
 var request = require('request');
 var atob = require('atob');
 
-var choices;
+//var choices;
 //var correctAnswerString;
 var letters = "ABCD";
-var uri = "mongodb+srv://" + process.env.dbuser + ":" + process.env.dbpassword + "@cluster0-vblnv.mongodb.net/trivia?retryWrites=true&w=majority";
-
 // Standard URI format: mongodb://[dbuser:dbpassword@]host:port/dbname, details set in .env
-//require('dotenv').config();
-//let storage = ;
+var uri = "mongodb+srv://" + process.env.dbuser + ":" + process.env.dbpassword + "@cluster0-vblnv.mongodb.net/trivia?retryWrites=true&w=majority";
 
 const numQuestions = 5;
 const adapter = new WebexAdapter({
@@ -27,14 +24,11 @@ const adapter = new WebexAdapter({
 const controller = new Botkit({
     webhook_name: 'TriviaBot',
     adapter: adapter,
-   // storage: mongodb
-
 });
 
 controller.on('message', async(bot, message) => {
      if(message.text){
        console.log(message);
-       //getRoom(message);
        const query = message.text.trim();
        const email = message.personEmail;
        const id = message.personId;
@@ -75,56 +69,37 @@ controller.on('message', async(bot, message) => {
         let correctAnswerString = atob(results.correct_answer).trim();
         let incorrectStrings = [atob(results.incorrect_answers[0].trim()), atob(results.incorrect_answers[1].trim()), atob(results.incorrect_answers[2].trim())];
 
-        choices = [correctAnswerString].concat(incorrectStrings);
+        let choices = [correctAnswerString].concat(incorrectStrings);
 
         choices = shuffle(choices);
         let correctAnswerLetter = letters.charAt(choices.indexOf(correctAnswerString));
         let questionString = firstName + ", " + question + "\n";
-        //question_string += "1. " + choices[0];
+
         for(let i = 0; i < choices.length; i++){
             questionString = questionString + "\n" + letters.charAt(i) + ") " + choices[i];
-            //await bot.reply(message, (i+1) + ". \n" + choices[i]);
          }
         addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString)
         await bot.reply(message, questionString);
       }
        else if(query.includes('answer')){
-         let selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim();
-         //let correctAnswer = "";
-        // let correctAnswer = correctAnswerString[0];
-         //let correctLetter;
-        // let correctAnswerString;
-         var testCorrect;
-         // await getCorrectAnswer(message, function(message, answers) {
-         //    console.log("letter: " + answers.correctAnswerLetter)
-         //    console.log("string: " + answers.correctAnswerString)
-         //    testCorrect = answers.correctAnswerLetter
-         //    //bot.say("why")
-         //    //testCorrect = answers.correctAnswerLetter;
-         //    //printCorrect(bot)
-         //    //await bot.reply(message, "Checking answer test")
-         // });
-         // try {
-         //   var testAnswers = await getCorrectAnswer(message)
-         //   console.log("test answers")
-         //   console.log(testAnswers)
-         //   }
-         // catch(e)
-         //   {
-         //     console.log("error in catch")
-         //   }
-         let correctAnswer = await getCorrectAnswer(message)
-         console.log("test answers")
-         console.log(correctAnswer)
-         console.log("test done")
-         let correctAnswerLetter = correctAnswer.correctAnswerLetter
-         let correctAnswerString = correctAnswer.correctAnswerString
-         if(selectedChoice === correctAnswerLetter) {
-           await bot.reply(message, "Good job, " + firstName + ", " + correctAnswerLetter + ") " + correctAnswerString + " is correct!")
-        }
+         let questionInfo = await getQuestionInfo(message)
+         let originalPerson = questionInfo.personId
+         console.log(originalPerson)
+         console.log(questionInfo.personId)
+         if(originalPerson !== id) {
+           bot.say("Sorry, " + firstName + ", it's not your turn!")
+         }
          else {
-           await bot.reply(message, "Sorry, " + firstName + ", that is incorrect. The correct answer is " + 
-                           correctAnswerLetter + ") " + correctAnswerString + ".");
+           let correctAnswerLetter = questionInfo.correctAnswerLetter
+           let correctAnswerString = questionInfo.correctAnswerString
+           let selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim();
+           if(selectedChoice === correctAnswerLetter) {
+             await bot.reply(message, "Good job, " + firstName + ", " + correctAnswerLetter + ") " + correctAnswerString + " is correct!")
+          }
+           else {
+             await bot.reply(message, "Sorry, " + firstName + ", that is incorrect. The correct answer is " + 
+                             correctAnswerLetter + ") " + correctAnswerString + ".");
+           }
          }
        }
        else if(query.includes("clearDb")) {
@@ -154,55 +129,6 @@ function clearRoom() {
   });
 }
 
-function getRoom(message) {
-
-
-  mongodb.MongoClient.connect(uri, function(err, db) {
-    if(err) throw err;
-    const triviaDatabase = db.db('trivia')
-    var rooms = triviaDatabase.collection('rooms');
-   //  rooms.drop();
-    var room = [
-      {
-        roomId: message.roomId,
-        currentPlayer: '',
-        currentQuestion: '',
-        currentAnswerLetter: '',
-        currentAnswerString: '',
-        allPlayers:''
-      }
-    ]
-
-    console.log("Room id: " + message.roomId)
-
-    rooms.insert(room, async function(err, result) {
-
-      if(err) throw err;
-
-      console.log("insertion success")
-
-      await rooms.find({}).toArray(function(err, result) {
-        if (err) throw err;
-        console.log(result);
-        db.close();
-      });
-      console.log("second test")
-      await rooms.find({roomId: message.roomId}, function(err, doc) {
-        if (doc.length === 'undefined' ||err) {
-          console.log("room not found")
-        }
-        
-        else {
-          console.log(doc.length + " is the doc length")
-          console.log(doc)
-          console.log("Found room id: " + message.roomId);
-        }
-        db.close();
-      });
-    });
-  });
-}
-
 function addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString) {
 
 
@@ -210,7 +136,6 @@ function addQuestionToDB(message, question, correctAnswerLetter, correctAnswerSt
     if(err) throw err;
     const triviaDatabase = db.db('trivia')
     var rooms = triviaDatabase.collection('rooms');
-   //  rooms.drop();
     rooms.find({roomId:message.roomId}).toArray(function(err, result) {
         if (result.length === 0 || err) {
           console.log("Room not found.")
@@ -267,53 +192,29 @@ function checkDb(message) {
   });
 }
 
-async function getCorrectAnswer(message) {
+async function getQuestionInfo(message) {
   let db = await mongodb.MongoClient.connect(uri)
-  // async function(err, db) {
-  //   if(err) throw err;
+  let questionInfo;
   try {
     let triviaDatabase = db.db('trivia')
     var rooms = triviaDatabase.collection('rooms');
-    var answers;
-   // let result = await rooms.find({roomId:message.roomId}); 
+   // var answers;
     let result = await rooms.find({roomId:message.roomId}).toArray()
     
-        if (result.length === 0) {
-          console.log("Room not found.")
-        }
-        else {
-          console.log("Answer room found.")
-          console.log(result);
-          answers = {correctAnswerLetter: result[0].currentAnswerLetter, correctAnswerString: result[0].currentAnswerString}
-        }
-      }
+    if (result.length === 0) {
+      console.log("Room not found.")
+    }
+    else {
+      console.log("Answer room found.")
+      console.log(result);
+      questionInfo = {personId: result[0].currentPlayer, correctAnswerLetter: result[0].currentAnswerLetter, correctAnswerString: result[0].currentAnswerString}
+    }
+  }
   finally {
     db.close();
   }
-//     let badresult = await rooms.find({roomId:'82000'})
-    
-//     if (result.length === 0) {
-//           console.log("Room not found.")
-//     }
-//     else {
-//         console.log("Answer Room found.")
-//         console.log(result)
-//         //console.log(result.message[0].currentAnswerLetter)
-//        // console.log(result.message[0].currentAnswerString)
-//         answers = {correctAnswerLetter: result[0].currentAnswerLetter, correctAnswerString: result[0].currentAnswerString}
-//         console.log(answers)
-          
-//           //callback(message, answers)
-//           // try {
-//           //   await callback(answers)
-//           // }
-//           // catch (err) {
-//           //   console.log("Error")
-//           // }
-//         }
-     return answers;
 
-  
+  return questionInfo;
 }
 
 function checkAll() {
