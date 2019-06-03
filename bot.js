@@ -102,13 +102,17 @@ controller.on('message', async(bot, message) => {
         // let correctAnswer = correctAnswerString[0];
          //let correctLetter;
         // let correctAnswerString;
-         getCorrectAnswer(message, async function(answers) {
+         var testCorrect;
+         await getCorrectAnswer(message, async function(answers) {
             console.log("letter: " + answers.correctAnswerLetter)
             console.log("string: " + answers.correctAnswerString)
-          //  await printCorrect(bot)
+            //bot.say("why")
+            //testCorrect = answers.correctAnswerLetter;
+            //printCorrect(bot)
            // await bot.reply(message, "Checking answer test")
          });
-        
+         console.log("test correct")
+        console.log(testCorrect);
          // console.log("correct letter from method", testcorrectLetter)
          // console.log("correct answer string from method", testcorrectAnswerString)
          let correctLetter = letters.charAt(choices.indexOf(correctAnswerString));
@@ -132,8 +136,8 @@ controller.on('message', async(bot, message) => {
      }
 });
 
-async function printCorrect(bot) {
-  await bot.reply("Checking answer")
+function printCorrect(bot) {
+  bot.say("Checking answer")
 }
 
 
@@ -302,7 +306,7 @@ async function getCorrectAnswer(message, callback) {
           console.log(result[0].currentAnswerString)
           var answers = {correctAnswerLetter: result[0].currentAnswerLetter, correctAnswerString: result[0].currentAnswerString}
           console.log(answers)
-          await callback()
+          await callback(answers)
           // try {
           //   await callback(answers)
           // }
