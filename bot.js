@@ -90,7 +90,7 @@ controller.on('message', async(bot, message) => {
         let questionString = firstName + ", " + question + "\n";
         //question_string += "1. " + choices[0];
         for(let i = 0; i < choices.length; i++){
-            questionString = questionString + "\n" + letters.charAt(i) + ". " + choices[i];
+            questionString = questionString + "\n" + letters.charAt(i) + ") " + choices[i];
             //await bot.reply(message, (i+1) + ". \n" + choices[i]);
          }
         addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString)
@@ -100,14 +100,24 @@ controller.on('message', async(bot, message) => {
          let selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim();
          //let correctAnswer = "";
         // let correctAnswer = correctAnswerString[0];
-         //getCorrectAnswer(message);
+         //let correctLetter;
+        // let correctAnswerString;
+         getCorrectAnswer(message, async function(answers) {
+            console.log("letter: " + answers.correctAnswerLetter)
+            console.log("string: " + answers.correctAnswerString)
+          //  await printCorrect(bot)
+           // await bot.reply(message, "Checking answer test")
+         });
+        
+         // console.log("correct letter from method", testcorrectLetter)
+         // console.log("correct answer string from method", testcorrectAnswerString)
          let correctLetter = letters.charAt(choices.indexOf(correctAnswerString));
          if(selectedChoice === correctLetter) {
-           await bot.reply(message, "Good job, " + firstName + ", " + correctLetter + " - " + correctAnswerString + " is correct!")
+           await bot.reply(message, "Good job, " + firstName + ", " + correctLetter + ") " + correctAnswerString + " is correct!")
         }
          else {
            await bot.reply(message, "Sorry, " + firstName + ", that is incorrect. The correct answer is " + 
-                           correctLetter + " - " + correctAnswerString + ".");
+                           correctLetter + ") " + correctAnswerString + ".");
          }
        }
        else if(query.includes("clearDb")) {
@@ -121,6 +131,11 @@ controller.on('message', async(bot, message) => {
        }
      }
 });
+
+async function printCorrect(bot) {
+  await bot.reply("Checking answer")
+}
+
 
 function clearRoom() {
   mongodb.MongoClient.connect(uri, function(err, db) {
@@ -264,6 +279,36 @@ function checkDb(message) {
         else {
           console.log("Room found.")
           console.log(result);
+        }
+        db.close();
+      });
+  });
+}
+
+async function getCorrectAnswer(message, callback) {
+  mongodb.MongoClient.connect(uri, async function(err, db) {
+    if(err) throw err;
+    const triviaDatabase = db.db('trivia')
+    var rooms = triviaDatabase.collection('rooms');
+    
+    await rooms.find({roomId:message.roomId}).toArray(async function(err, result) {
+        if (result.length === 0 || err) {
+          console.log("Room not found.")
+        }
+        else {
+          console.log("Room found.")
+          console.log(result)
+          console.log(result[0].currentAnswerLetter)
+          console.log(result[0].currentAnswerString)
+          var answers = {correctAnswerLetter: result[0].currentAnswerLetter, correctAnswerString: result[0].currentAnswerString}
+          console.log(answers)
+          await callback()
+          // try {
+          //   await callback(answers)
+          // }
+          // catch (err) {
+          //   console.log("Error")
+          // }
         }
         db.close();
       });
