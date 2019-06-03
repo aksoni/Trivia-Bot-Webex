@@ -8,7 +8,7 @@ var request = require('request');
 var atob = require('atob');
 
 var choices;
-var correctAnswerString;
+//var correctAnswerString;
 var letters = "ABCD";
 var uri = "mongodb+srv://" + process.env.dbuser + ":" + process.env.dbpassword + "@cluster0-vblnv.mongodb.net/trivia?retryWrites=true&w=majority";
 
@@ -72,7 +72,7 @@ controller.on('message', async(bot, message) => {
    
         let results = response.results[0]
         let question =  atob(results.question);
-        correctAnswerString = atob(results.correct_answer).trim();
+        let correctAnswerString = atob(results.correct_answer).trim();
         let incorrectStrings = [atob(results.incorrect_answers[0].trim()), atob(results.incorrect_answers[1].trim()), atob(results.incorrect_answers[2].trim())];
 
         choices = [correctAnswerString].concat(incorrectStrings);
@@ -95,23 +95,36 @@ controller.on('message', async(bot, message) => {
          //let correctLetter;
         // let correctAnswerString;
          var testCorrect;
-         getCorrectAnswer(message, function(message, answers) {
-            console.log("letter: " + answers.correctAnswerLetter)
-            console.log("string: " + answers.correctAnswerString)
-            //bot.say("why")
-            //testCorrect = answers.correctAnswerLetter;
-            //printCorrect(bot)
-            //await bot.reply(message, "Checking answer test")
-         });
-         // console.log("correct letter from method", testcorrectLetter)
-         // console.log("correct answer string from method", testcorrectAnswerString)
-         let correctLetter = letters.charAt(choices.indexOf(correctAnswerString));
-         if(selectedChoice === correctLetter) {
-           await bot.reply(message, "Good job, " + firstName + ", " + correctLetter + ") " + correctAnswerString + " is correct!")
+         // await getCorrectAnswer(message, function(message, answers) {
+         //    console.log("letter: " + answers.correctAnswerLetter)
+         //    console.log("string: " + answers.correctAnswerString)
+         //    testCorrect = answers.correctAnswerLetter
+         //    //bot.say("why")
+         //    //testCorrect = answers.correctAnswerLetter;
+         //    //printCorrect(bot)
+         //    //await bot.reply(message, "Checking answer test")
+         // });
+         // try {
+         //   var testAnswers = await getCorrectAnswer(message)
+         //   console.log("test answers")
+         //   console.log(testAnswers)
+         //   }
+         // catch(e)
+         //   {
+         //     console.log("error in catch")
+         //   }
+         let correctAnswer = await getCorrectAnswer(message)
+         console.log("test answers")
+         console.log(correctAnswer)
+         console.log("test done")
+         let correctAnswerLetter = correctAnswer.correctAnswerLetter
+         let correctAnswerString = correctAnswer.correctAnswerString
+         if(selectedChoice === correctAnswerLetter) {
+           await bot.reply(message, "Good job, " + firstName + ", " + correctAnswerLetter + ") " + correctAnswerString + " is correct!")
         }
          else {
            await bot.reply(message, "Sorry, " + firstName + ", that is incorrect. The correct answer is " + 
-                           correctLetter + ") " + correctAnswerString + ".");
+                           correctAnswerLetter + ") " + correctAnswerString + ".");
          }
        }
        else if(query.includes("clearDb")) {
@@ -254,34 +267,53 @@ function checkDb(message) {
   });
 }
 
-function getCorrectAnswer(message, callback) {
-  mongodb.MongoClient.connect(uri, async function(err, db) {
-    if(err) throw err;
-    const triviaDatabase = db.db('trivia')
+async function getCorrectAnswer(message) {
+  let db = await mongodb.MongoClient.connect(uri)
+  // async function(err, db) {
+  //   if(err) throw err;
+  try {
+    let triviaDatabase = db.db('trivia')
     var rooms = triviaDatabase.collection('rooms');
+    var answers;
+   // let result = await rooms.find({roomId:message.roomId}); 
+    let result = await rooms.find({roomId:message.roomId}).toArray()
     
-    await rooms.find({roomId:message.roomId}).toArray(function(err, result) {
-        if (result.length === 0 || err) {
+        if (result.length === 0) {
           console.log("Room not found.")
         }
         else {
-          console.log("Room found.")
-          console.log(result)
-          console.log(result[0].currentAnswerLetter)
-          console.log(result[0].currentAnswerString)
-          var answers = {correctAnswerLetter: result[0].currentAnswerLetter, correctAnswerString: result[0].currentAnswerString}
-          console.log(answers)
-          callback(message, answers)
-          // try {
-          //   await callback(answers)
-          // }
-          // catch (err) {
-          //   console.log("Error")
-          // }
+          console.log("Answer room found.")
+          console.log(result);
+          answers = {correctAnswerLetter: result[0].currentAnswerLetter, correctAnswerString: result[0].currentAnswerString}
         }
-        db.close();
-      });
-  });
+      }
+  finally {
+    db.close();
+  }
+//     let badresult = await rooms.find({roomId:'82000'})
+    
+//     if (result.length === 0) {
+//           console.log("Room not found.")
+//     }
+//     else {
+//         console.log("Answer Room found.")
+//         console.log(result)
+//         //console.log(result.message[0].currentAnswerLetter)
+//        // console.log(result.message[0].currentAnswerString)
+//         answers = {correctAnswerLetter: result[0].currentAnswerLetter, correctAnswerString: result[0].currentAnswerString}
+//         console.log(answers)
+          
+//           //callback(message, answers)
+//           // try {
+//           //   await callback(answers)
+//           // }
+//           // catch (err) {
+//           //   console.log("Error")
+//           // }
+//         }
+     return answers;
+
+  
 }
 
 function checkAll() {
