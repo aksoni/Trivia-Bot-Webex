@@ -35,9 +35,14 @@ module.exports = {
     const selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
 
     let categoryString = "";
-    if(selectedCategory !== ""){
+    if(selectedCategory !== "" && (isNaN(Number(selectedCategory)) || Number(selectedCategory) < 9 || Number(selectedCategory) > 32)){
+      await bot.say("Please select a valid category. Enter '@Trivia categories' to see the available categories.");
+      return;
+    }
+    else if(Number(selectedCategory) >=9 && Number(selectedCategory) <= 32){
       categoryString = "&category=" + selectedCategory;
     }
+
     const response = await fetch(constants.TRIVIA_QUESTIONS_URL + categoryString);
     const trivia_object = await response.json();
 

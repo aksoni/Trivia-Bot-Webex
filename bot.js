@@ -29,7 +29,7 @@ controller.on('message', async(bot, message) => {
       else if(query === "categories"){
         await hears.categories(bot);   
       }
-      else if(query.includes('hit me')){
+      else if(query.substr(0, 'hit me'.length) === 'hit me'){
         await hears.hitMe(bot, roomId, personId, query, firstName);
       }
       else if(query.substr(0, 'answer'.length) === 'answer'){
