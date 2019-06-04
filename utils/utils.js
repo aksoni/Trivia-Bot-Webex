@@ -1,5 +1,5 @@
-const mongodb = require('mongodb')
-var uri = "mongodb+srv://" + process.env.dbuser + ":" + process.env.dbpassword + "@cluster0-vblnv.mongodb.net/trivia?retryWrites=true&w=majority";
+const mongodb = require('mongodb');
+var constants = require('../lib/constants.js');
 
 module.exports = {
   
@@ -15,74 +15,72 @@ module.exports = {
   },
   
   addQuestionToDB: function(roomId, personId, question, correctAnswerLetter, correctAnswerString) {
-    mongodb.MongoClient.connect(uri, {useNewUrlParser: true}, function(err, db) {
-    if(err) throw err;
-    const triviaDatabase = db.db('trivia')
-    var rooms = triviaDatabase.collection('rooms');
-    rooms.find({roomId:roomId}).toArray(function(err, result) {
-      if (result.length === 0 || err) {
-        var room = [{
-              roomId: roomId,
-              currentPlayer: personId,
-              currentQuestion: question,
-              currentAnswerLetter: correctAnswerLetter,
-              currentAnswerString: correctAnswerString,
-              allPlayers:''
-            }]
-        rooms.insert(room, function(err, result) {
-          if(err) throw err;
-        });
-      }
-      else {
-        rooms.updateOne({ roomId: roomId}, 
-          { $set: { currentPlayer: personId, currentQuestion:question, 
-                   currentAnswerLetter:correctAnswerLetter,currentAnswerString:correctAnswerString } },
-          function (err, result) {
+    mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
+      if(err) throw err;
+      const triviaDatabase = db.db('trivia');
+      var rooms = triviaDatabase.collection('rooms');
+      rooms.find({roomId:roomId}).toArray(function(err, result) {
+        if (result.length === 0 || err) {
+          var room = {
+                roomId: roomId,
+                currentPlayer: personId,
+                currentQuestion: question,
+                currentAnswerLetter: correctAnswerLetter,
+                currentAnswerString: correctAnswerString,
+                allPlayers:''
+              };
+          rooms.insertOne(room, function(err, result) {
             if(err) throw err;
-          }); 
-      }
-      db.close() });
+          });
+        }
+        else {
+          rooms.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:question, 
+                     currentAnswerLetter:correctAnswerLetter,currentAnswerString:correctAnswerString}},
+            function (err, result) {
+              if(err) throw err;
+            }); 
+        }
+        db.close(); 
+      });
     });
   },
   
   updateUser: async function(roomId, personId, answeredCorrectly) {
-
     let db;
     let userInfo;
     let numCorrect;
     let numQuestions;
     try {
-      db = await mongodb.MongoClient.connect(uri, {useNewUrlParser: true})
-      let triviaDatabase = db.db('trivia')
+      db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true});
+      let triviaDatabase = db.db('trivia');
       var users = triviaDatabase.collection('users');
-      let result = await users.find({roomId:roomId, personId:personId}).toArray()
+      let result = await users.find({roomId:roomId, personId:personId}).toArray();
 
       if(result.length === 0) {
-        if(answeredCorrectly) numCorrect = 1
-        else numCorrect = 0
-        numQuestions = 1
-        var user = [{
+        if(answeredCorrectly) numCorrect = 1;
+        else numCorrect = 0;
+        numQuestions = 1;
+        var user = {
           roomId: roomId,
           personId: personId,
           totalCorrect: numCorrect,
           totalQuestions: numQuestions,
-        }]
-        users.insert(user, function(err, result) {
+        };
+        users.insertOne(user, function(err, result) {
           if(err) throw err;
         });
       }
       else {
-        numCorrect = result[0].totalCorrect
-        numQuestions = result[0].totalQuestions
+        numCorrect = result[0].totalCorrect;
+        numQuestions = result[0].totalQuestions;
         
         if(answeredCorrectly) {
           numCorrect++;
         }
-        numQuestions++
+        numQuestions++;
         
         try {
-          await users.updateOne(
-            {roomId: roomId, personId: personId}, 
+          await users.updateOne({roomId: roomId, personId: personId}, 
             {$set: {totalCorrect: numCorrect, totalQuestions: numQuestions}},
             function (err, result) {
               if(err) console.log("update error in function");
@@ -90,30 +88,30 @@ module.exports = {
           ); 
         }
         catch(e) {
-          console.log("update user error")
+          console.log("update user error");
         }
       }
-      userInfo = {numCorrect: numCorrect, numQuestions}
+      userInfo = {numCorrect: numCorrect, numQuestions};
     }
     finally {
         db.close();
     }   
-    return userInfo
+    return userInfo;
   },
   
   getQuestionInfo: async function(roomId) {
-    let db = await mongodb.MongoClient.connect(uri, {useNewUrlParser: true})
+    let db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true});
     let questionInfo;
     try {
-      let triviaDatabase = db.db('trivia')
+      let triviaDatabase = db.db('trivia');
       var rooms = triviaDatabase.collection('rooms');
-      let result = await rooms.find({roomId:roomId}).toArray()
+      let result = await rooms.find({roomId:roomId}).toArray();
       if (result.length === 0) {
-        console.log("Room not found.")
+        console.log("Room not found.");
       }
       else {
         questionInfo = {personId: result[0].currentPlayer, correctAnswerLetter: result[0].currentAnswerLetter, 
-                        correctAnswerString: result[0].currentAnswerString}
+                        correctAnswerString: result[0].currentAnswerString};
       }
     }
     finally {
