@@ -35,12 +35,6 @@ controller.on('message', async(bot, message) => {
       else if(query.includes('answer')){
         await hears.answer(bot, roomId, personId, query, firstName);
       }
-      else if(query.includes("clearRooms")  && personId === process.env.userId) {
-        dataManager.clearRooms();
-      }
-      else if(query.includes("clearUsers") && personId === process.env.userId) {
-        dataManager.clearUsers();
-      }
       else if(query.includes("checkRoom")  && personId === process.env.userId) {
         dataManager.checkRoom(roomId);
       }
@@ -49,6 +43,12 @@ controller.on('message', async(bot, message) => {
       }
       else if(query.includes("checkAll")  && personId === process.env.userId) {
         dataManager.checkAllRooms();
+      }
+      else if(query.includes("clearRooms")  && personId === process.env.userId) {
+        dataManager.clearRooms();
+      }
+      else if(query.includes("clearUsers") && personId === process.env.userId) {
+        dataManager.clearUsers();
       }
       else if(query.includes("clearAll")  && personId === process.env.userId) {
         dataManager.clearRooms();

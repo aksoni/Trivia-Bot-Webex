@@ -1,12 +1,12 @@
 const mongodb = require('mongodb');
-var constants = require('../lib/constants.js');
+const constants = require('../lib/constants.js');
 
 module.exports = {
   clearRooms: function() {
     mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
       if(err) throw err;
       const triviaDatabase = db.db('trivia');
-      var rooms = triviaDatabase.collection('rooms');
+      const rooms = triviaDatabase.collection('rooms');
       rooms.drop();
       console.log("rooms dropped");
     });
@@ -16,7 +16,7 @@ module.exports = {
     mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
       if(err) throw err;
       const triviaDatabase = db.db('trivia');
-      var users = triviaDatabase.collection('users');
+      const users = triviaDatabase.collection('users');
       users.drop();
       console.log("users dropped");
     });
@@ -26,8 +26,8 @@ module.exports = {
     mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, async function(err, db) {
       if(err) throw err;
       const triviaDatabase = db.db('trivia');
-      var users = triviaDatabase.collection('rooms');
-      let result = await users.find({roomId:roomId}).toArray() ;
+      const users = triviaDatabase.collection('rooms');
+      const result = await users.find({roomId:roomId}).toArray() ;
       if (result.length === 0 || err) {
         console.log("Room not found.");
       }
@@ -42,8 +42,8 @@ module.exports = {
     mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, async function(err, db) {
       if(err) throw err;
       const triviaDatabase = db.db('trivia');
-      var users = triviaDatabase.collection('users');
-      let result = await users.find({personId:personId}).toArray();
+      const users = triviaDatabase.collection('users');
+      const result = await users.find({personId:personId}).toArray();
       if (result.length === 0 || err) {
         console.log("User not found.");
       }
@@ -59,7 +59,7 @@ module.exports = {
     mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
       if(err) throw err;
       const triviaDatabase = db.db('trivia');
-      var rooms = triviaDatabase.collection('rooms');
+      const rooms = triviaDatabase.collection('rooms');
 
       rooms.find({}).toArray(function(err, result) {
         if(err) throw err;

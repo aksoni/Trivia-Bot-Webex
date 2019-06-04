@@ -1,6 +1,6 @@
-var utils = require('../utils/utils.js');
-var atob = require('atob');
-var constants = require('../lib/constants.js');
+const utils = require('../utils/utils.js');
+const atob = require('atob');
+const constants = require('../lib/constants.js');
 
 module.exports = {
   
@@ -13,51 +13,41 @@ module.exports = {
     helpMessage += "To answer a question: \'Trivia answer <letter choice>\'\n"
     helpMessage += "To see the categories: \'@Trivia categories\'\n";
     
-    try {
-      await bot.say(helpMessage);
-    }
-    catch(e) {
-      console.log("Help message error.")
-    }
+    await bot.say(helpMessage);
   },
   
   categories: async function(bot) {
-    let response = await fetch(constants.CATEGORIES_URL);
-    response = await response.json();
+    const response = await fetch(constants.CATEGORIES_URL);
+    const categories_object = await response.json();
     
     let categories = "Categories\n";
     
-    for(let i = 0; i < response.trivia_categories.length; i++) {
-      categories += response.trivia_categories[i].name + ": " + response.trivia_categories[i].id + "\n";
+    for(let i = 0; i < categories_object.trivia_categories.length; i++) {
+      categories += categories_object.trivia_categories[i].name + ": " + categories_object.trivia_categories[i].id + "\n";
     }
-    
-    try {
-      await bot.say(categories)
-    }
-    catch (e){
-      console.log("Category error.")
-    }
+        
+    await bot.say(categories);
   },
   
   hitMe: async function(bot, roomId, personId, query, firstName){
-    let letters = "ABCD";
-    let selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
-    let response;
+    const letters = "ABCD";
+    const selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
+
     let categoryString = "";
     if(selectedCategory !== ""){
       categoryString = "&category=" + selectedCategory;
     }
-    response = await fetch(constants.TRIVIA_QUESTIONS_URL + categoryString);
-    response = await response.json();
+    const response = await fetch(constants.TRIVIA_QUESTIONS_URL + categoryString);
+    const trivia_object = await response.json();
 
-    let results = response.results[0];
-    let question =  atob(results.question);
-    let correctAnswerString = atob(results.correct_answer).trim();
-    let incorrectStrings = [atob(results.incorrect_answers[0].trim()), 
+    const results = trivia_object.results[0];
+    const question =  atob(results.question);
+    const correctAnswerString = atob(results.correct_answer).trim();
+    const incorrectStrings = [atob(results.incorrect_answers[0].trim()), 
                             atob(results.incorrect_answers[1].trim()), atob(results.incorrect_answers[2].trim())];
-    let choices = [correctAnswerString].concat(incorrectStrings);
-    choices = utils.shuffle(choices);
-    let correctAnswerLetter = letters.charAt(choices.indexOf(correctAnswerString));
+    const choices = [correctAnswerString].concat(incorrectStrings);
+    const shuffledChoices = utils.shuffle(choices);
+    const correctAnswerLetter = letters.charAt(shuffledChoices.indexOf(correctAnswerString));
     let questionString = firstName + ", " + question + "\n";
 
     for(let i = 0; i < choices.length; i++){
@@ -70,43 +60,27 @@ module.exports = {
   },
   
   answer: async function(bot, roomId, personId, query, firstName) {
-    let questionInfo;
-    try {
-      questionInfo = await utils.getQuestionInfo(roomId);
-    }
-    catch(e) {
-     console.log("answer error")
-    }
+    const questionInfo = await utils.getQuestionInfo(roomId);
     
-    let originalPerson = questionInfo.personId;
+    const originalPerson = questionInfo.personId;
     
     if(originalPerson !== personId) {
       bot.say("Sorry, " + firstName + ", it's not your turn!");
     }
     else {
       let userInfo;
-      let correctAnswerLetter = questionInfo.correctAnswerLetter;
-      let correctAnswerString = questionInfo.correctAnswerString;
+      const correctAnswerLetter = questionInfo.correctAnswerLetter;
+      const correctAnswerString = questionInfo.correctAnswerString;
       let replyString = "";
-      let selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim();
+      const selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim();
       if(selectedChoice === correctAnswerLetter) {
         replyString += "Good job, " + firstName + ", " + correctAnswerLetter + ") " + correctAnswerString + " is correct!\n";
-        try {
-          userInfo = await utils.updateUser(roomId, personId, true);
-        }
-        catch(e) {
-          console.log("Error updating user");
-        }
+        userInfo = await utils.updateUser(roomId, personId, true);
       }
       else {
         replyString += "Sorry, " + firstName + ", that is incorrect. The correct answer is " + 
                        correctAnswerLetter + ") " + correctAnswerString + ".\n";
-        try {
-          userInfo = await utils.updateUser(roomId, personId, false);
-        }
-        catch(e) {
-          console.log("Error updating user");
-        }
+        userInfo = await utils.updateUser(roomId, personId, false);
       }
            
       replyString += "You have now answered " + userInfo.numCorrect + " out of " + userInfo.numQuestions + " questions correctly.";
