@@ -7,6 +7,8 @@ const mongodb = require('mongodb')
 var request = require('request');
 var atob = require('atob');
 
+var hears = require('./features/hears.js')
+
 //var choices;
 //var correctAnswerString;
 var letters = "ABCD";
@@ -27,30 +29,18 @@ const controller = new Botkit({
 });
 
 controller.on('message', async(bot, message) => {
-     if(message.text){
-       console.log(message);
-       const query = message.text.trim();
-       const email = message.personEmail;
-       const id = message.personId;
-       const firstNameLower = email.substr(0, email.indexOf('.'));
-       const firstName = firstNameLower.charAt(0).toUpperCase() + firstNameLower.slice(1)
-       if(query.includes('help')) {
-         let helpMessage = ""
-         helpMessage += "Hi, " + firstName + "! I'm Trivia Timmy! I will ask trivia questions and you will have to choose from the 4 choices given.\n\n";
-         helpMessage += "To get a question: @Trivia hit me <category number> (optional)\n";
-         helpMessage += "To answer a question: @Trivia answer <letter choice>\n"
-         helpMessage += "To see the categories: @Trivia categories\n";
-         await bot.reply(message, helpMessage);
+    if(message.text){
+      console.log(message);
+      const query = message.text.trim();
+      const email = message.personEmail;
+      const id = message.personId;
+      const firstNameLower = email.substr(0, email.indexOf('.'));
+      const firstName = firstNameLower.charAt(0).toUpperCase() + firstNameLower.slice(1)
+      if(query.includes('help')) {
+        await hears.help(bot, message, firstName)
       }
       else if(query.includes('categories')){
-         let response = await fetch('https://opentdb.com/api_category.php');
-         response = await response.json();
-         let categories = "Categories\n"
-         for(let i = 0; i < response.trivia_categories.length; i++) {
-           categories += response.trivia_categories[i].name + ": " + response.trivia_categories[i].id + "\n";
-         }
-         console.log(categories);
-         await bot.reply(message, categories);
+        await hears.categories(bot, message)   
       }
       else if(query.includes('hit me')){
         let selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
@@ -82,34 +72,62 @@ controller.on('message', async(bot, message) => {
         await bot.reply(message, questionString);
       }
        else if(query.includes('answer')){
-         let questionInfo = await getQuestionInfo(message)
+         let questionInfo;
+         try {
+           questionInfo = await getQuestionInfo(message)
+         }
+         catch(e) {
+           console.log("answer error")
+         }
          let originalPerson = questionInfo.personId
-         console.log(originalPerson)
-         console.log(questionInfo.personId)
          if(originalPerson !== id) {
            bot.say("Sorry, " + firstName + ", it's not your turn!")
          }
          else {
+           let userInfo;
            let correctAnswerLetter = questionInfo.correctAnswerLetter
            let correctAnswerString = questionInfo.correctAnswerString
+           let replyString = ""
            let selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim();
            if(selectedChoice === correctAnswerLetter) {
-             await bot.reply(message, "Good job, " + firstName + ", " + correctAnswerLetter + ") " + correctAnswerString + " is correct!")
+             replyString += "Good job, " + firstName + ", " + correctAnswerLetter + ") " + correctAnswerString + " is correct!\n"
+             try {
+               userInfo = await updateUser(message, true)
+             }
+             catch(e) {
+               console.log("Error updating user")
+             }
           }
            else {
-             await bot.reply(message, "Sorry, " + firstName + ", that is incorrect. The correct answer is " + 
-                             correctAnswerLetter + ") " + correctAnswerString + ".");
+             replyString += "Sorry, " + firstName + ", that is incorrect. The correct answer is " + 
+                             correctAnswerLetter + ") " + correctAnswerString + ".\n"
+             try {
+               userInfo = await updateUser(message, false)
+             }
+             catch(e) {
+               console.log("Error updating user")
+             }
+             
            }
+           
+           replyString += "You have now answered " + userInfo.numCorrect + " out of " +userInfo.numQuestions + " questions correctly."
+           bot.say(replyString)
          }
        }
-       else if(query.includes("clearDb")) {
-         clearRoom();
+       else if(query.includes("clearRooms")  && message.personId === process.env.userId) {
+         clearRooms();
        }
-       else if(query.includes("checkDb")) {
-         checkDb(message);
+       else if(query.includes("clearUsers") && message.personId === process.env.userId) {
+         clearUsers();
        }
-       else if(query.includes("checkAll")) {
+       else if(query.includes("checkRoom")  && message.personId === process.env.userId) {
+         checkRoom(message);
+       }
+       else if(query.includes("checkAll")  && message.personId === process.env.userId) {
          checkAll();
+       }
+       else {
+         bot.say("Please enter a valid command. Enter \'@Trivia help\' to see the list of commands.")
        }
      }
 });
@@ -119,7 +137,7 @@ function printCorrect(bot) {
 }
 
 
-function clearRoom() {
+function clearRooms() {
   mongodb.MongoClient.connect(uri, function(err, db) {
     if(err) throw err;
     const triviaDatabase = db.db('trivia')
@@ -127,6 +145,81 @@ function clearRoom() {
     rooms.drop();
     console.log("rooms dropped")
   });
+}
+
+function clearUsers() {
+  mongodb.MongoClient.connect(uri, function(err, db) {
+    if(err) throw err;
+    const triviaDatabase = db.db('trivia')
+    var users = triviaDatabase.collection('users');
+    users.drop();
+    console.log("users dropped")
+  });
+}
+
+async function updateUser(message, answeredCorrectly) {
+
+ let db;
+ let userInfo;
+ let numCorrect;
+ let numQuestions;
+ try {
+    db = await mongodb.MongoClient.connect(uri)
+    let triviaDatabase = db.db('trivia')
+    var users = triviaDatabase.collection('users');
+    let result = await users.find({roomId: message.roomId, personId:message.personId}).toArray()
+    console.log("update user result")
+    console.log(result)
+    if (result.length === 0) {
+        console.log("User not found.")
+        if(answeredCorrectly) numCorrect = 1
+        else numCorrect = 0
+        numQuestions = 1
+        var user = [
+            {
+              roomId: message.roomId,
+              personId: message.personId,
+              totalCorrect: numCorrect,
+              totalQuestions: numQuestions,
+            }
+          ]
+        users.insert(user, function(err, result) {
+            if(err) throw err;
+            console.log("insertion success")
+          });
+    }
+    else {
+      console.log("User found.")
+      numCorrect = result[0].totalCorrect
+      numQuestions = result[0].totalQuestions
+      if(answeredCorrectly) {
+        numCorrect++;
+      }
+      numQuestions++
+      try {
+      await users.update(
+        { roomId: message.roomId, personId: message.personId}, 
+        { $set: {totalCorrect: numCorrect, totalQuestions: numQuestions} },
+        function (err, result) {
+
+          if(err) console.log("update error in function");
+          else{
+            console.log("update success")
+          }
+        }); 
+      }
+      catch(e) {
+        console.log("update user error")
+      }
+    }
+   
+   userInfo = {numCorrect: numCorrect, numQuestions}
+  }
+  finally {
+        db.close();
+ }
+  
+ return userInfo
 }
 
 function addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString) {
@@ -166,14 +259,13 @@ function addQuestionToDB(message, question, correctAnswerLetter, correctAnswerSt
                 console.log("update success")
               }
             }); 
-          console.log(result)
         }
         db.close();
       });
   });
 }
 
-function checkDb(message) {
+function checkRoom(message) {
   mongodb.MongoClient.connect(uri, function(err, db) {
     if(err) throw err;
     const triviaDatabase = db.db('trivia')
@@ -191,6 +283,26 @@ function checkDb(message) {
       });
   });
 }
+
+function checkUsers(message) {
+  mongodb.MongoClient.connect(uri, function(err, db) {
+    if(err) throw err;
+    const triviaDatabase = db.db('trivia')
+    var users = triviaDatabase.collection('users');
+    
+    users.find({personId:message.personId}).toArray(function(err, result) {
+        if (result.length === 0 || err) {
+          console.log("User not found.")
+        }
+        else {
+          console.log("User found.")
+          console.log(result);
+        }
+        db.close();
+      });
+  });
+}
+
 
 async function getQuestionInfo(message) {
   let db = await mongodb.MongoClient.connect(uri)
