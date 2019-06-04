@@ -1,27 +1,16 @@
-// Import Botkit
 const { Botkit } = require('botkit');
 const { WebexAdapter } = require('botbuilder-adapter-webex');
-const { BotkitCMSHelper } = require('botkit-plugin-cms');
 const mongodb = require('mongodb')
-
-var request = require('request');
-var atob = require('atob');
-
 var hears = require('./features/hears.js')
 
-//var choices;
-//var correctAnswerString;
-var letters = "ABCD";
 // Standard URI format: mongodb://[dbuser:dbpassword@]host:port/dbname, details set in .env
 var uri = "mongodb+srv://" + process.env.dbuser + ":" + process.env.dbpassword + "@cluster0-vblnv.mongodb.net/trivia?retryWrites=true&w=majority";
 
-const numQuestions = 5;
 const adapter = new WebexAdapter({
     access_token: process.env.access_token,
     public_address: process.env.public_address,
     secret: process.env.secret
 })
-
 
 const controller = new Botkit({
     webhook_name: 'TriviaBot',
@@ -30,90 +19,24 @@ const controller = new Botkit({
 
 controller.on('message', async(bot, message) => {
     if(message.text){
-      console.log(message);
+      //console.log(message);
       const query = message.text.trim();
       const email = message.personEmail;
-      const id = message.personId;
+      const roomId = message.roomId;
+      const personId = message.personId;
       const firstNameLower = email.substr(0, email.indexOf('.'));
       const firstName = firstNameLower.charAt(0).toUpperCase() + firstNameLower.slice(1)
       if(query.includes('help')) {
-        await hears.help(bot, message, firstName)
+        await hears.help(bot, firstName)
       }
       else if(query.includes('categories')){
-        await hears.categories(bot, message)   
+        await hears.categories(bot)   
       }
       else if(query.includes('hit me')){
-        await hears.hitMe(bot, message, query, firstName)
-//         let selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
-//         let response;
-//         if(selectedCategory === ""){
-//           response = await fetch('https://opentdb.com/api.php?amount=1&difficulty=easy&type=multiple&encode=base64');
-//         }
-//         else{
-//           let url = "https://opentdb.com/api.php?amount=1&" + "category=" + selectedCategory + "&type=multiple&encode=base64";
-//           response = await fetch(url);
-//         }
-//         response = await response.json();
-   
-//         let results = response.results[0]
-//         let question =  atob(results.question);
-//         let correctAnswerString = atob(results.correct_answer).trim();
-//         let incorrectStrings = [atob(results.incorrect_answers[0].trim()), atob(results.incorrect_answers[1].trim()), atob(results.incorrect_answers[2].trim())];
-
-//         let choices = [correctAnswerString].concat(incorrectStrings);
-
-//         choices = shuffle(choices);
-//         let correctAnswerLetter = letters.charAt(choices.indexOf(correctAnswerString));
-//         let questionString = firstName + ", " + question + "\n";
-
-//         for(let i = 0; i < choices.length; i++){
-//             questionString = questionString + "\n" + letters.charAt(i) + ") " + choices[i];
-//          }
-//         addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString)
-//         await bot.reply(message, questionString);
+        await hears.hitMe(bot, roomId, personId, query, firstName)
       }
        else if(query.includes('answer')){
-         let questionInfo;
-         try {
-           questionInfo = await getQuestionInfo(message)
-         }
-         catch(e) {
-           console.log("answer error")
-         }
-         let originalPerson = questionInfo.personId
-         if(originalPerson !== id) {
-           bot.say("Sorry, " + firstName + ", it's not your turn!")
-         }
-         else {
-           let userInfo;
-           let correctAnswerLetter = questionInfo.correctAnswerLetter
-           let correctAnswerString = questionInfo.correctAnswerString
-           let replyString = ""
-           let selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim();
-           if(selectedChoice === correctAnswerLetter) {
-             replyString += "Good job, " + firstName + ", " + correctAnswerLetter + ") " + correctAnswerString + " is correct!\n"
-             try {
-               userInfo = await updateUser(message, true)
-             }
-             catch(e) {
-               console.log("Error updating user")
-             }
-          }
-           else {
-             replyString += "Sorry, " + firstName + ", that is incorrect. The correct answer is " + 
-                             correctAnswerLetter + ") " + correctAnswerString + ".\n"
-             try {
-               userInfo = await updateUser(message, false)
-             }
-             catch(e) {
-               console.log("Error updating user")
-             }
-             
-           }
-           
-           replyString += "You have now answered " + userInfo.numCorrect + " out of " +userInfo.numQuestions + " questions correctly."
-           bot.say(replyString)
-         }
+         await hears.answer(bot, query, roomId, personId, firstName)
        }
        else if(query.includes("clearRooms")  && message.personId === process.env.userId) {
          clearRooms();
