@@ -43,33 +43,34 @@ controller.on('message', async(bot, message) => {
         await hears.categories(bot, message)   
       }
       else if(query.includes('hit me')){
-        let selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
-        let response;
-        if(selectedCategory === ""){
-          response = await fetch('https://opentdb.com/api.php?amount=1&difficulty=easy&type=multiple&encode=base64');
-        }
-        else{
-          let url = "https://opentdb.com/api.php?amount=1&" + "category=" + selectedCategory + "&type=multiple&encode=base64";
-          response = await fetch(url);
-        }
-        response = await response.json();
+        await hears.hitMe(bot, message, query, firstName)
+//         let selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
+//         let response;
+//         if(selectedCategory === ""){
+//           response = await fetch('https://opentdb.com/api.php?amount=1&difficulty=easy&type=multiple&encode=base64');
+//         }
+//         else{
+//           let url = "https://opentdb.com/api.php?amount=1&" + "category=" + selectedCategory + "&type=multiple&encode=base64";
+//           response = await fetch(url);
+//         }
+//         response = await response.json();
    
-        let results = response.results[0]
-        let question =  atob(results.question);
-        let correctAnswerString = atob(results.correct_answer).trim();
-        let incorrectStrings = [atob(results.incorrect_answers[0].trim()), atob(results.incorrect_answers[1].trim()), atob(results.incorrect_answers[2].trim())];
+//         let results = response.results[0]
+//         let question =  atob(results.question);
+//         let correctAnswerString = atob(results.correct_answer).trim();
+//         let incorrectStrings = [atob(results.incorrect_answers[0].trim()), atob(results.incorrect_answers[1].trim()), atob(results.incorrect_answers[2].trim())];
 
-        let choices = [correctAnswerString].concat(incorrectStrings);
+//         let choices = [correctAnswerString].concat(incorrectStrings);
 
-        choices = shuffle(choices);
-        let correctAnswerLetter = letters.charAt(choices.indexOf(correctAnswerString));
-        let questionString = firstName + ", " + question + "\n";
+//         choices = shuffle(choices);
+//         let correctAnswerLetter = letters.charAt(choices.indexOf(correctAnswerString));
+//         let questionString = firstName + ", " + question + "\n";
 
-        for(let i = 0; i < choices.length; i++){
-            questionString = questionString + "\n" + letters.charAt(i) + ") " + choices[i];
-         }
-        addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString)
-        await bot.reply(message, questionString);
+//         for(let i = 0; i < choices.length; i++){
+//             questionString = questionString + "\n" + letters.charAt(i) + ") " + choices[i];
+//          }
+//         addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString)
+//         await bot.reply(message, questionString);
       }
        else if(query.includes('answer')){
          let questionInfo;

@@ -2,6 +2,10 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
+
+var utils = require('../utils/utils.js')
+var atob = require('atob');
+
 module.exports = {
   
   help: async function(bot, message, firstName) {
@@ -33,6 +37,39 @@ module.exports = {
       console.log("Category error.")
     }
     //bot.say(categories);
+  },
+  
+  hitMe: async function(bot, message, query, firstName){
+    let letters = "ABCD"
+    let selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
+    let response;
+    if(selectedCategory === ""){
+      response = await fetch('https://opentdb.com/api.php?amount=1&difficulty=easy&type=multiple&encode=base64');
+    }
+    else{
+      let url = "https://opentdb.com/api.php?amount=1&" + "category=" + selectedCategory + "&type=multiple&encode=base64";
+      response = await fetch(url);
+    }
+    response = await response.json();
+
+    let results = response.results[0]
+    let question =  atob(results.question);
+    let correctAnswerString = atob(results.correct_answer).trim();
+    let incorrectStrings = [atob(results.incorrect_answers[0].trim()), atob(results.incorrect_answers[1].trim()), atob(results.incorrect_answers[2].trim())];
+
+    let choices = [correctAnswerString].concat(incorrectStrings);
+
+    choices = utils.shuffle(choices);
+    let correctAnswerLetter = letters.charAt(choices.indexOf(correctAnswerString));
+    let questionString = firstName + ", " + question + "\n";
+
+    for(let i = 0; i < choices.length; i++){
+        questionString = questionString + "\n" + letters.charAt(i) + ") " + choices[i];
+     }
+    utils.addQuestionToDB(message, question, correctAnswerLetter, correctAnswerString)
+    await bot.say(questionString);
+    
+    
   }
   
   
