@@ -20,7 +20,7 @@ module.exports = {
       await bot.say(helpMessage);
     }
     catch(e) {
-      console.log("Help message error.")
+      //console.log("Help message error.")
     }
   },
   
@@ -35,7 +35,7 @@ module.exports = {
       await bot.say(categories)
     }
     catch (e){
-      console.log("Category error.")
+      //console.log("Category error.")
     }
   },
   
@@ -108,7 +108,7 @@ module.exports = {
       }
            
       replyString += "You have now answered " + userInfo.numCorrect + " out of " +userInfo.numQuestions + " questions correctly."
-      bot.say(replyString)
+      await bot.say(replyString)
     }
   }  
 }
