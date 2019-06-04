@@ -54,8 +54,11 @@ controller.on('message', async(bot, message) => {
         dataManager.clearRooms();
         dataManager.clearUsers();
       }
+      else if(query.includes("wordCheck")) {
+        await hears.wordCheck(bot, query)
+      }
       else {
-         bot.say("Please enter a valid command. Enter \'@Trivia help\' to see the list of commands.");
+        await bot.say("Please enter a valid command. Enter \'@Trivia help\' to see the list of commands.");
       }
     }
 });
