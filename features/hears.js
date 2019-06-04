@@ -30,8 +30,8 @@ module.exports = {
   },
   
   hitMe: async function(bot, roomId, personId, query, firstName){
-    const letters = "ABCD";
-    const questionWords = ["Who", "What", "Where", "When", "Why", "How", "Of", "Which", "In", "The", "A", "This", "What's", "When's", "Where's", "Why's", "How's", "At", "Is", "Are", "To", "Whose", "Whom"];
+    const letters = ["A", "B", "C", "D"];
+    const questionWords = ["Who", "What", "Where", "When", "Why", "How", "Of", "Which", "In", "The", "A", "This", "What's", "When's", "Where's", "Why's", "How's", "At", "Is", "Are", "To", "Whose", "Whom", "Painter"];
     const selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
 
     let categoryString = "";
@@ -52,11 +52,11 @@ module.exports = {
                             atob(results.incorrect_answers[1].trim()), atob(results.incorrect_answers[2].trim())];
     const choices = [correctAnswerString].concat(incorrectStrings);
     const shuffledChoices = utils.shuffle(choices);
-    const correctAnswerLetter = letters.charAt(shuffledChoices.indexOf(correctAnswerString));
+    const correctAnswerLetter = letters[shuffledChoices.indexOf(correctAnswerString)];
     let questionString = firstName + ", " + question + "\n";
 
     for(let i = 0; i < choices.length; i++){
-        questionString = questionString + "\n" + letters.charAt(i) + ") " + choices[i];
+        questionString = questionString + "\n" + letters[i] + ") " + choices[i];
      }
     
     utils.addQuestionToDB(roomId, personId, question, correctAnswerLetter, correctAnswerString);
@@ -65,6 +65,12 @@ module.exports = {
   },
   
   answer: async function(bot, roomId, personId, query, firstName) {
+    const letters = ["A", "B", "C", "D"]
+    if(letters.indexOf(query.substr('answer'.length).trim().toUpperCase()) < 0){
+      await bot.say("Invalid answer choice. Please select A, B, C, or D.")
+      return;
+    }
+    
     const questionInfo = await utils.getQuestionInfo(roomId);
     
     const originalPerson = questionInfo.personId;
@@ -77,7 +83,7 @@ module.exports = {
       const correctAnswerLetter = questionInfo.correctAnswerLetter;
       const correctAnswerString = questionInfo.correctAnswerString;
       let replyString = "";
-      const selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim();
+      const selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim().toUpperCase();
       if(selectedChoice === correctAnswerLetter) {
         replyString += "Good job, " + firstName + ", " + correctAnswerLetter + ") " + correctAnswerString + " is correct!\n";
         userInfo = await utils.updateUser(roomId, personId, true);
