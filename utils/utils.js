@@ -18,16 +18,15 @@ module.exports = {
     mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
       if(err) throw err;
       const triviaDatabase = db.db('trivia');
-      var rooms = triviaDatabase.collection('rooms');
+      const rooms = triviaDatabase.collection('rooms');
       rooms.find({roomId:roomId}).toArray(function(err, result) {
         if (result.length === 0 || err) {
-          var room = {
+          const room = {
                 roomId: roomId,
                 currentPlayer: personId,
                 currentQuestion: question,
                 currentAnswerLetter: correctAnswerLetter,
                 currentAnswerString: correctAnswerString,
-                allPlayers:''
               };
           rooms.insertOne(room, function(err, result) {
             if(err) throw err;
@@ -53,14 +52,14 @@ module.exports = {
     try {
       db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true});
       let triviaDatabase = db.db('trivia');
-      var users = triviaDatabase.collection('users');
-      let result = await users.find({roomId:roomId, personId:personId}).toArray();
+      const users = triviaDatabase.collection('users');
+      const result = await users.find({roomId:roomId, personId:personId}).toArray();
 
       if(result.length === 0) {
         if(answeredCorrectly) numCorrect = 1;
         else numCorrect = 0;
         numQuestions = 1;
-        var user = {
+        const user = {
           roomId: roomId,
           personId: personId,
           totalCorrect: numCorrect,
@@ -104,7 +103,7 @@ module.exports = {
     let questionInfo;
     try {
       let triviaDatabase = db.db('trivia');
-      var rooms = triviaDatabase.collection('rooms');
+      const rooms = triviaDatabase.collection('rooms');
       let result = await rooms.find({roomId:roomId}).toArray();
       if (result.length === 0) {
         console.log("Room not found.");
@@ -118,5 +117,88 @@ module.exports = {
       db.close();
     }
   return questionInfo;
+  },
+  
+  newChallenge: function(roomId, personId, firstName) {
+    mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
+      if(err) throw err;
+      const triviaDatabase = db.db('trivia');
+      const challenges = triviaDatabase.collection('challenges');
+      challenges.find({roomId:roomId}).toArray(function(err, result) {
+        if (result.length === 0 || err) {
+          const challenge = {
+                roomId: roomId,
+                currentPlayer: personId,
+                currentQuestion: "",
+                currentAnswerLetter: "",
+                currentAnswerString: "",
+                allPlayers:[personId]
+              };
+          challenges.insertOne(challenge, function(err, result) {
+            if(err) throw err;
+          });
+        }
+        else {
+          challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:"", 
+                     currentAnswerLetter:"",currentAnswerString:"",allPlayers:[personId]}},
+            function (err, result) {
+              if(err) throw err;
+            }); 
+        }
+        db.close(); 
+      });
+    });
+  },
+  
+  addUserToChallenge: async function(roomId, personId, firstName) {
+    var joinString = "Join failure.";
+    let db;
+    try {
+      db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true});
+      const triviaDatabase = db.db('trivia');
+      const challenges = triviaDatabase.collection('challenges');
+      const result =  await challenges.find({roomId:roomId}).toArray(); 
+      if (result.length === 0) {
+        joinString = "Challenge in this room not found";
+      }
+      else if(result[0].allPlayers.indexOf(personId) >= 0) {
+        joinString = "You've joined the challenge already, " + firstName + "!";
+        return joinString;
+      }
+      else {
+        console.log("current players");
+        console.log(result[0].allPlayers.indexOf(personId))
+        console.log(result)
+        console.log(result[0].allPlayers);
+        const currentPlayers = result[0].allPlayers
+        console.log(personId)
+        console.log(personId)
+        const allPlayers = currentPlayers.concat([personId])
+        console.log("all players")
+        console.log(allPlayers)
+         try {
+            await challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:"", 
+                   currentAnswerLetter:"",currentAnswerString:"",allPlayers:allPlayers}},
+              function (err, result) {
+                if(err) console.log("update error in function");
+              }
+            );
+            joinString = "You've been added to the challenge, " + firstName + "!";
+          }
+          catch(e) {
+            console.log("update challenge error");
+          }
+      }
+    }
+    catch(e) {
+      console.log("Join challenge error");
+    }
+    finally {
+      db.close();
+    }
+
+    console.log("final join string")
+    console.log(joinString)
+    return joinString;
   }
 }

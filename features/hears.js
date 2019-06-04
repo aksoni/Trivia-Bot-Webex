@@ -29,15 +29,16 @@ module.exports = {
     await bot.say(categories);
   },
   
-  hitMe: async function(bot, roomId, personId, query, firstName){
+  hitMe: async function(bot, roomId, personId, query, firstName, questionAnswered){
     const letters = ["A", "B", "C", "D"];
-    const questionWords = ["Who", "What", "Where", "When", "Why", "How", "Of", "Which", "In", "The", "A", "This", "What's", "When's", "Where's", "Why's", "How's", "At", "Is", "Are", "To", "Whose", "Whom", "Painter"];
+    const questionWords = ["Who", "What", "Where", "When", "Why", "How", "Of", "Which", "In", "The", "A", "This", 
+                           "What's", "When's", "Where's", "Why's", "How's", "At", "Is", "Are", "To", "Whose", "Whom", "Painter"];
     const selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
 
     let categoryString = "";
     if(selectedCategory !== "" && (isNaN(Number(selectedCategory)) || Number(selectedCategory) < 9 || Number(selectedCategory) > 32)){
       await bot.say("Please select a valid category. Enter '@Trivia categories' to see the available categories.");
-      return;
+      return questionAnswered;
     }
     else if(Number(selectedCategory) >=9 && Number(selectedCategory) <= 32){
       categoryString = "&category=" + selectedCategory;
@@ -67,13 +68,19 @@ module.exports = {
     utils.addQuestionToDB(roomId, personId, question, correctAnswerLetter, correctAnswerString);
     
     await bot.say(questionString);
+    
+    return false;
   },
   
-  answer: async function(bot, roomId, personId, query, firstName) {
-    const letters = ["A", "B", "C", "D"]
+  answer: async function(bot, roomId, personId, query, firstName, questionAnswered) {
+    const letters = ["A", "B", "C", "D"];
     if(letters.indexOf(query.substr('answer'.length).trim().toUpperCase()) < 0){
-      await bot.say("Invalid answer choice. Please select A, B, C, or D.")
-      return;
+      await bot.say("Invalid answer choice. Please select A, B, C, or D.");
+      return false;
+    }
+    if(questionAnswered){
+      await bot.say("This question has already been answered, " + firstName + "! Enter \'@Trivia hit me\' to get another question.")
+      return true;
     }
     
     const questionInfo = await utils.getQuestionInfo(roomId);
@@ -81,7 +88,8 @@ module.exports = {
     const originalPerson = questionInfo.personId;
     
     if(originalPerson !== personId) {
-      bot.say("Sorry, " + firstName + ", it's not your turn!");
+      await bot.say("Sorry, " + firstName + ", it's not your turn!");
+      return false;
     }
     else {
       let userInfo;
@@ -101,6 +109,18 @@ module.exports = {
            
       replyString += "You have now answered " + userInfo.numCorrect + " out of " + userInfo.numQuestions + " questions correctly.";
       await bot.say(replyString);
+      return true;
     }
-  }  
+  },
+  
+  challenge: async function(bot, roomId, personId, firstName) {
+    utils.newChallenge(roomId, personId, firstName);
+    await bot.say("A new challenge has been started! You've been added, " + firstName + ". Other players can join by entering \'@Trivia join\'.");
+    return true;
+  },
+  
+  joinChallenge: async function(bot, roomId, personId, firstName) {
+    const joinString = await utils.addUserToChallenge(roomId, personId, firstName)
+    await bot.say(joinString)
+  }
 }

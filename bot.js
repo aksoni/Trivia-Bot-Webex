@@ -1,8 +1,11 @@
 const { Botkit } = require('botkit');
 const { WebexAdapter } = require('botbuilder-adapter-webex');
 
-var hears = require('./features/hears.js');
-var dataManager = require('./utils/dataManager.js');
+const hears = require('./features/hears.js');
+const dataManager = require('./utils/dataManager.js');
+
+var challengeModeOn = false;
+var questionAnswered = false;
 
 const adapter = new WebexAdapter({
     access_token: process.env.access_token,
@@ -21,36 +24,41 @@ controller.on('message', async(bot, message) => {
       const email = message.personEmail;
       const roomId = message.roomId;
       const personId = message.personId;
-      const firstNameLower = email.substr(0, email.indexOf('.'));
-      const firstName = firstNameLower.charAt(0).toUpperCase() + firstNameLower.slice(1);
+      const firstName = email.charAt(0).toUpperCase() + email.substr(1, email.indexOf('.') - 1);
       if(query.includes('help')) {
         await hears.help(bot, firstName);
       }
       else if(query === "categories"){
         await hears.categories(bot);   
       }
-      else if(query.substr(0, 'hit me'.length) === 'hit me'){
-        await hears.hitMe(bot, roomId, personId, query, firstName);
+      else if(query.substr(0, 'hit me'.length)=== 'hit me'){
+        questionAnswered = await hears.hitMe(bot, roomId, personId, query, firstName, questionAnswered);
       }
       else if(query.substr(0, 'answer'.length) === 'answer'){
-        await hears.answer(bot, roomId, personId, query, firstName);
+        questionAnswered = await hears.answer(bot, roomId, personId, query, firstName, questionAnswered);
       }
-      else if(query === "checkRoom"  && personId === process.env.userId) {
+      else if(query === "challenge"){
+        challengeModeOn = await hears.challenge(bot, roomId, personId, firstName);
+      }
+      else if(challengeModeOn && query === "join"){
+        await hears.joinChallenge(bot, roomId, personId, firstName)      
+      }
+      else if(query === "checkroom"  && personId === process.env.userId) {
         dataManager.checkRoom(roomId);
       }
-      else if(query === "checkUsers"  && personId === process.env.userId) {
+      else if(query === "checkusers"  && personId === process.env.userId) {
         dataManager.checkUsers(personId);
       }
-      else if(query === "checkAll"  && personId === process.env.userId) {
+      else if(query === "checkall"  && personId === process.env.userId) {
         dataManager.checkAllRooms();
       }
-      else if(query === "clearRooms"  && personId === process.env.userId) {
+      else if(query === "clearrooms"  && personId === process.env.userId) {
         dataManager.clearRooms();
       }
-      else if(query === "clearUsers" && personId === process.env.userId) {
+      else if(query === "clearusers" && personId === process.env.userId) {
         dataManager.clearUsers();
       }
-      else if(query === "clearAll"  && personId === process.env.userId) {
+      else if(query === "clearall"  && personId === process.env.userId) {
         dataManager.clearRooms();
         dataManager.clearUsers();
       }
