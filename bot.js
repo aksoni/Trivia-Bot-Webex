@@ -35,7 +35,7 @@ controller.on('message', async(bot, message) => {
         questionAnswered = await hears.hitMe(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn);
       }
       else if(query.substr(0, 'answer'.length) === 'answer'){
-        questionAnswered = await hears.answer(bot, roomId, personId, query, firstName, questionAnswered);
+        questionAnswered = await hears.answer(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn);
       }
       else if(query === "challenge"){
         challengeModeOn = await hears.challenge(bot, roomId, personId, firstName);

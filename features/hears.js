@@ -74,7 +74,7 @@ module.exports = {
     return false;
   },
   
-  answer: async function(bot, roomId, personId, query, firstName, questionAnswered) {
+  answer: async function(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn) {
     const letters = ["A", "B", "C", "D"];
     if(letters.indexOf(query.substr('answer'.length).trim().toUpperCase()) < 0){
       await bot.say("Invalid answer choice. Please select A, B, C, or D.");
@@ -85,7 +85,7 @@ module.exports = {
       return true;
     }
     
-    const questionInfo = await utils.getQuestionInfo(roomId);
+    const questionInfo = await utils.getQuestionInfo(roomId, challengeModeOn);
     
     const originalPerson = questionInfo.personId;
     

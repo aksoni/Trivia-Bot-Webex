@@ -132,19 +132,33 @@ module.exports = {
     return userInfo;
   },
   
-  getQuestionInfo: async function(roomId) {
+  getQuestionInfo: async function(roomId, challengeModeOn) {
     let db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true});
     let questionInfo;
     try {
       const triviaDatabase = db.db('trivia');
-      const rooms = triviaDatabase.collection('rooms');
-      let result = await rooms.find({roomId:roomId}).toArray();
-      if (result.length === 0) {
-        console.log("Room not found.");
+      if(!challengeModeOn) {
+        const rooms = triviaDatabase.collection('rooms');
+        const result = await rooms.find({roomId:roomId}).toArray();
+        if (result.length === 0) {
+          console.log("Room not found.");
+        }
+        else {
+          questionInfo = {personId: result[0].currentPlayer, correctAnswerLetter: result[0].currentAnswerLetter, 
+                          correctAnswerString: result[0].currentAnswerString};
+        }
       }
       else {
-        questionInfo = {personId: result[0].currentPlayer, correctAnswerLetter: result[0].currentAnswerLetter, 
-                        correctAnswerString: result[0].currentAnswerString};
+        console.log("Answering challenge question.");
+        const challenges = triviaDatabase.collection('challenges');
+        const result = await challenges.find({roomId:roomId}).toArray();
+        if (result.length === 0) {
+          console.log("Room not found.");
+        }
+        else {
+          questionInfo = {personId: result[0].currentPlayer, correctAnswerLetter: result[0].currentAnswerLetter, 
+                          correctAnswerString: result[0].currentAnswerString};
+        }
       }
     }
     finally {
