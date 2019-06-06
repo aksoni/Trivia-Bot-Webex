@@ -78,7 +78,7 @@ module.exports = {
     
   },
   
-  updateUser: async function(roomId, personId, answeredCorrectly) {
+  updateUser: async function(roomId, personId, answeredCorrectly, challengeModeOn) {
     let db;
     let userInfo;
     let numCorrect;
@@ -86,45 +86,87 @@ module.exports = {
     try {
       db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true});
       const triviaDatabase = db.db('trivia');
-      const users = triviaDatabase.collection('users');
-      const result = await users.find({roomId:roomId, personId:personId}).toArray();
+      if(!challengeModeOn) {
+        const users = triviaDatabase.collection('users');
+        const result = await users.find({roomId:roomId, personId:personId}).toArray();
 
-      if(result.length === 0) {
-        if(answeredCorrectly) numCorrect = 1;
-        else numCorrect = 0;
-        numQuestions = 1;
-        const user = {
-          roomId: roomId,
-          personId: personId,
-          totalCorrect: numCorrect,
-          totalQuestions: numQuestions,
-        };
-        users.insertOne(user, function(err, result) {
-          if(err) throw err;
-        });
+        if(result.length === 0) {
+          if(answeredCorrectly) numCorrect = 1;
+          else numCorrect = 0;
+          numQuestions = 1;
+          const user = {
+            roomId: roomId,
+            personId: personId,
+            totalCorrect: numCorrect,
+            totalQuestions: numQuestions,
+          };
+          users.insertOne(user, function(err, result) {
+            if(err) throw err;
+          });
+        }
+        else {
+          numCorrect = result[0].totalCorrect;
+          numQuestions = result[0].totalQuestions;
+
+          if(answeredCorrectly) {
+            numCorrect++;
+          }
+          numQuestions++;
+
+          try {
+            await users.updateOne({roomId: roomId, personId: personId}, 
+              {$set: {totalCorrect: numCorrect, totalQuestions: numQuestions}},
+              function (err, result) {
+                if(err) console.log("update error in function");
+              }
+            ); 
+          }
+          catch(e) {
+            console.log("update user error");
+          }
+        }
+        userInfo = {numCorrect: numCorrect, numQuestions};
       }
       else {
-        numCorrect = result[0].totalCorrect;
-        numQuestions = result[0].totalQuestions;
-        
-        if(answeredCorrectly) {
-          numCorrect++;
+        console.log("Updating user challenge stats.");
+        const challenge = triviaDatabase.collection('challenges');
+        const result = await challenge.find({roomId:roomId}).toArray();
+
+        if(result.length === 0) {
+          console.log("Challenge not found when updating user.")
         }
-        numQuestions++;
-        
-        try {
-          await users.updateOne({roomId: roomId, personId: personId}, 
-            {$set: {totalCorrect: numCorrect, totalQuestions: numQuestions}},
-            function (err, result) {
-              if(err) console.log("update error in function");
+        else {
+          console.log("Challenge result")
+          console.log(result)
+          let personFound = false;
+          for(let i = 0; i < result[0].scores.length && !personFound; i++) {
+            if(result[0].scores[i].id === personId) {
+              console.log("found person " + personId);
+              numCorrect = result[0].scores[i].numCorrect;
+              numQuestions = result[0].scores[i].numQuestions;
+              personFound = true
             }
-          ); 
+          }
+          
+          if(answeredCorrectly) {
+            numCorrect++;
+          }
+          numQuestions++;
+
+          try {
+            await challenge.updateOne({roomId: roomId, 'scores.id': personId}, 
+              {$set: {'scores.$.numCorrect':numCorrect, 'scores.$.numQuestions': numQuestions}},
+              function (err, result) {
+                if(err) console.log("update error in function");
+              }
+            ); 
+          }
+          catch(e) {
+            console.log("update user error");
+          }
         }
-        catch(e) {
-          console.log("update user error");
-        }
+        userInfo = {numCorrect: numCorrect, numQuestions};
       }
-      userInfo = {numCorrect: numCorrect, numQuestions};
     }
     finally {
         db.close();
@@ -167,7 +209,7 @@ module.exports = {
   return questionInfo;
   },
   
-  newChallenge: function(roomId, personId, firstName) {
+  createChallenge: function(roomId, personId, firstName) {
     mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
       if(err) throw err;
       const triviaDatabase = db.db('trivia');

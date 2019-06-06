@@ -101,12 +101,12 @@ module.exports = {
       const selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim().toUpperCase();
       if(selectedChoice === correctAnswerLetter) {
         replyString += "Good job, " + firstName + ", " + correctAnswerLetter + ") " + correctAnswerString + " is correct!\n";
-        userInfo = await utils.updateUser(roomId, personId, true);
+        userInfo = await utils.updateUser(roomId, personId, true, challengeModeOn);
       }
       else {
         replyString += "Sorry, " + firstName + ", that is incorrect. The correct answer is " + 
                        correctAnswerLetter + ") " + correctAnswerString + ".\n";
-        userInfo = await utils.updateUser(roomId, personId, false);
+        userInfo = await utils.updateUser(roomId, personId, false, challengeModeOn);
       }
            
       replyString += "You have now answered " + userInfo.numCorrect + " out of " + userInfo.numQuestions + " questions correctly.";
@@ -116,7 +116,7 @@ module.exports = {
   },
   
   challenge: async function(bot, roomId, personId, firstName) {
-    utils.newChallenge(roomId, personId, firstName);
+    utils.createChallenge(roomId, personId, firstName);
     await bot.say("A new challenge has been started! You've been added, " + firstName + ". Other players can join by entering \'@Trivia join\'.");
     return true;
   },
