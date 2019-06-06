@@ -30,6 +30,13 @@ module.exports = {
   },
   
   hitMe: async function(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn){
+    if(challengeModeOn) {
+      let personInfo = await utils.getPersonScore(roomId, personId);
+      if(personInfo.numQuestions === constants.NUM_CHALLENGE_QUESTIONS){
+        await bot.say("Your turn is finished, " + firstName + "! Next player type @Trivia hit me");
+        return questionAnswered;
+      }
+    }
     const letters = ["A", "B", "C", "D"];
     const questionWords = ["Who", "What", "Where", "When", "Why", "How", "Of", "Which", "In", "The", "A", "This", 
                            "What's", "When's", "Where's", "Why's", "How's", "At", "Is", "Are", "To", "Whose", "Whom", "Painter"];
@@ -101,15 +108,18 @@ module.exports = {
       const selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim().toUpperCase();
       if(selectedChoice === correctAnswerLetter) {
         replyString += "Good job, " + firstName + ", " + correctAnswerLetter + ") " + correctAnswerString + " is correct!\n";
-        userInfo = await utils.updateUser(roomId, personId, true, challengeModeOn);
+       // userInfo = await utils.updateUser(roomId, personId, true, challengeModeOn);
+        replyString += await utils.updateUser(roomId, personId, firstName, true, challengeModeOn)
       }
       else {
         replyString += "Sorry, " + firstName + ", that is incorrect. The correct answer is " + 
                        correctAnswerLetter + ") " + correctAnswerString + ".\n";
-        userInfo = await utils.updateUser(roomId, personId, false, challengeModeOn);
+       // userInfo = await utils.updateUser(roomId, personId, false, challengeModeOn);
+        replyString += await utils.updateUser(roomId, personId, firstName, false, challengeModeOn)
       }
            
-      replyString += "You have now answered " + userInfo.numCorrect + " out of " + userInfo.numQuestions + " questions correctly.";
+      //replyString += "You have now answered " + userInfo.numCorrect + " out of " + userInfo.numQuestions + " questions correctly.";
+      
       await bot.say(replyString);
       return true;
     }
@@ -124,5 +134,10 @@ module.exports = {
   joinChallenge: async function(bot, roomId, personId, firstName) {
     const joinString = await utils.addUserToChallenge(roomId, personId, firstName)
     await bot.say(joinString)
+  },
+  
+  quit: async function(bot, roomId) {
+    const replyString = await utils.quitChallenge(roomId);
+    await bot.say(replyString);
   }
 }

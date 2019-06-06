@@ -2,31 +2,43 @@ const mongodb = require('mongodb');
 const constants = require('../lib/constants.js');
 
 module.exports = {
-  clearRooms: function() {
-    mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
-      if(err) throw err;
-      const triviaDatabase = db.db('trivia');
-      const rooms = triviaDatabase.collection('rooms');
-      rooms.drop();
-      console.log("rooms dropped");
-    });
+  clearOpenRooms: async function() {
+    let db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true})
+    const triviaDatabase = db.db('trivia');
+    const rooms = triviaDatabase.collection('openRooms');
+    await rooms.drop();
+    console.log("open rooms dropped");
   },
   
-  clearUsers: function() {
-    mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
-      if(err) throw err;
-      const triviaDatabase = db.db('trivia');
-      const users = triviaDatabase.collection('users');
-      users.drop();
-      console.log("users dropped");
-    });
+  clearUsers: async function() {
+    let db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true})
+    const triviaDatabase = db.db('trivia');
+    const rooms = triviaDatabase.collection('users');
+    await rooms.drop();
+    console.log("users dropped");
+  },
+  
+  clearChallenges: async function() {
+    let db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true})
+    const triviaDatabase = db.db('trivia');
+    const rooms = triviaDatabase.collection('challenges');
+    await rooms.drop();
+    console.log("challenges dropped");
+  },
+  
+  clearStatuses: async function() {
+    let db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true})
+    const triviaDatabase = db.db('trivia');
+    const rooms = triviaDatabase.collection('roomStatus');
+    await rooms.drop();
+    console.log("room status dropped");
   },
 
-  checkRoom: async function(roomId) {
+  checkOpenRoom: async function(roomId) {
     mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, async function(err, db) {
       if(err) throw err;
       const triviaDatabase = db.db('trivia');
-      const users = triviaDatabase.collection('rooms');
+      const users = triviaDatabase.collection('openRooms');
       const result = await users.find({roomId:roomId}).toArray() ;
       if (result.length === 0 || err) {
         console.log("Room not found.");
@@ -55,11 +67,11 @@ module.exports = {
     });
   },
 
-  checkAllRooms: function() {
+  checkAllOpenRooms: function() {
     mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
       if(err) throw err;
       const triviaDatabase = db.db('trivia');
-      const rooms = triviaDatabase.collection('rooms');
+      const rooms = triviaDatabase.collection('openRooms');
 
       rooms.find({}).toArray(function(err, result) {
         if(err) throw err;

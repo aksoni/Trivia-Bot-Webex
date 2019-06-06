@@ -19,8 +19,10 @@ module.exports = {
     db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true})
     const triviaDatabase = db.db('trivia');
     if(!challengeModeOn) {
-      const rooms = triviaDatabase.collection('rooms');
-      const result = rooms.find({roomId:roomId}).toArray()
+      console.log("Adding to open rooms.")
+      const rooms = triviaDatabase.collection('openRooms');
+      const result = await rooms.find({roomId:roomId}).toArray()
+      console.log(result);
       if (result.length === 0) {
         const room = {
               roomId: roomId,
@@ -31,6 +33,7 @@ module.exports = {
             };
         await rooms.insertOne(room, function(err, result) {
           if(err) throw err;
+          else console.log("Added to open room.")
         });
       }
       else {
@@ -46,7 +49,7 @@ module.exports = {
     else {
       console.log("Challenge mode is on.");
       const challenges = triviaDatabase.collection('challenges');
-      const result = challenges.find({roomId:roomId}).toArray()
+      const result = await challenges.find({roomId:roomId}).toArray()
       if (result.length === 0) {
         const challenge = {
               roomId: roomId,
@@ -78,7 +81,7 @@ module.exports = {
     
   },
   
-  updateUser: async function(roomId, personId, answeredCorrectly, challengeModeOn) {
+  updateUser: async function(roomId, personId, firstName, answeredCorrectly, challengeModeOn) {
     let db;
     let userInfo;
     let numCorrect;
@@ -126,6 +129,8 @@ module.exports = {
           }
         }
         userInfo = {numCorrect: numCorrect, numQuestions};
+        let replyString = "You have now answered " + userInfo.numCorrect + " out of " + userInfo.numQuestions + " questions correctly.";
+        return replyString;
       }
       else {
         console.log("Updating user challenge stats.");
@@ -165,7 +170,13 @@ module.exports = {
             console.log("update user error");
           }
         }
-        userInfo = {numCorrect: numCorrect, numQuestions};
+        userInfo = {numCorrect: numCorrect, numQuestions: numQuestions};
+        console.log("Challenge reply.");
+        let replyString = "You have now answered " + numCorrect + " out of " + numQuestions + " questions correctly.";
+        if(numQuestions === constants.NUM_CHALLENGE_QUESTIONS) {
+          replyString += "\nYou've finished your turn, " + firstName + "! You finished with a final score of " + numCorrect + "!";
+        }
+        return replyString;
       }
     }
     finally {
@@ -180,7 +191,8 @@ module.exports = {
     try {
       const triviaDatabase = db.db('trivia');
       if(!challengeModeOn) {
-        const rooms = triviaDatabase.collection('rooms');
+        console.log("Searching for open rooms.")
+        const rooms = triviaDatabase.collection('openRooms');
         const result = await rooms.find({roomId:roomId}).toArray();
         if (result.length === 0) {
           console.log("Room not found.");
@@ -232,6 +244,8 @@ module.exports = {
           challenges.insertOne(challenge, function(err, result) {
             if(err) throw err;
           });
+          
+          module.exports.setRoomStatus(roomId, true);
         }
         else {
           challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:"", 
@@ -239,7 +253,8 @@ module.exports = {
                       scores:[{id: personId, numCorrect: 0, numQuestions: 0}]}},
             function (err, result) {
               if(err) throw err;
-            }); 
+            });
+          module.exports.setRoomStatus(roomId, true);
         }
         db.close(); 
       });
@@ -296,5 +311,76 @@ module.exports = {
     console.log("final join string")
     console.log(joinString)
     return joinString;
-  }
+  },
+  
+  getRoomStatus: async function(roomId) {
+    let db;
+    db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true})
+    const triviaDatabase = db.db('trivia');
+      const rooms = triviaDatabase.collection('roomStatus');
+      const result = await rooms.find({roomId:roomId}).toArray();
+      console.log("GRS result");
+      console.log(result);
+      if (result.length === 0) {
+        console.log("Get room status: Room status not found.")
+        const room = {
+              roomId: roomId,
+              challengeModeOn: false
+            };
+        await rooms.insertOne(room, function(err, result) {
+          if(err) throw err;
+        });
+        return room.challengeModeOn;
+      }
+      else {
+        console.log("get room status: Room status found.")
+        return result[0].challengeModeOn;
+      }
+  },
+  
+  setRoomStatus: async function(roomId, challengeModeOn) {
+    let db;
+    db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true})
+    const triviaDatabase = db.db('trivia');
+    const rooms = triviaDatabase.collection('roomStatus');
+    const result = await rooms.find({roomId:roomId}).toArray();
+    console.log("SRS result");
+    console.log(result);
+    if (result.length === 0) {
+      console.log("Set room status: Room status not found.");
+    }
+    else {
+        await rooms.updateOne({roomId: roomId}, {$set: {challengeModeOn: challengeModeOn}});
+        console.log("Challenge status changed to " + challengeModeOn);
+    }
+  },
+  
+  quitChallenge: async function(roomId) {
+    await module.exports.setRoomStatus(roomId, false);
+    return "Challenge has been quit.";
+  },
+  
+  getPersonScore: async function(roomId, personId) {
+    const db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true});
+    const triviaDatabase = db.db('trivia');
+    console.log("Getting person score.");
+    const challenge = triviaDatabase.collection('challenges');
+    const result = await challenge.find({roomId:roomId}).toArray();
+    if(result.length === 0) {
+      console.log("Challenge not found when updating user.")
+    }
+    else {
+      console.log("Challenge result")
+      console.log(result)
+      for(let i = 0; i < result[0].scores.length; i++) {
+        if(result[0].scores[i].id === personId) {
+          console.log("found person " + personId);
+          let numCorrect = result[0].scores[i].numCorrect;
+          let numQuestions = result[0].scores[i].numQuestions;
+          return {numCorrect: numCorrect, numQuestions: numQuestions};
+        }
+      }
+    }
+  } 
+  
 }
