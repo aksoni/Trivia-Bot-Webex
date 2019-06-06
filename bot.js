@@ -40,14 +40,17 @@ controller.on('message', async(bot, message) => {
       else if(query.substr(0, 'answer'.length) === 'answer'){
         questionAnswered = await hears.answer(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn);
       }
-      else if(query === "challenge" && personId === process.env.userId){
-        challengeModeOn = await hears.challenge(bot, roomId, personId, firstName);
+      else if(query.substr(0, 'challenge'.length) === "challenge"){// && personId === process.env.userId){
+        challengeModeOn = await hears.challenge(bot, roomId, personId, query, firstName, challengeModeOn, email);
       }
-      else if(challengeModeOn && query === "join" && personId === process.env.userId){
+      else if(challengeModeOn && query === "join"){// && personId === process.env.userId){
         await hears.joinChallenge(bot, roomId, personId, firstName)      
       }
-      else if(challengeModeOn && query === "quit" && personId === process.env.userId){
+      else if(challengeModeOn && query === "quit"){// && personId === process.env.userId){
         await hears.quit(bot, roomId);
+      }
+      else if(challengeModeOn && query === "check"){// && personId === process.env.userId){
+        await hears.check(bot, roomId);
       }
       else if(query === "checkroom"  && personId === process.env.userId) {
         dataManager.checkOpenRoom(roomId);

@@ -50,23 +50,26 @@ module.exports = {
       console.log("Challenge mode is on.");
       const challenges = triviaDatabase.collection('challenges');
       const result = await challenges.find({roomId:roomId}).toArray()
+      let category;
+      let categoryString;
       if (result.length === 0) {
-        const challenge = {
-              roomId: roomId,
-              currentPlayer: personId,
-              currentQuestion: "",
-              currentAnswerLetter: "",
-              currentAnswerString: "",
-              players:[personId],
-              scores:[{
-                id: personId,
-                numCorrect: 0,
-                numQuestions: 0
-              }] 
-            };
-        challenges.insertOne(challenge, function(err, result) {
-          if(err) throw err;
-        });
+        console.log("Add question to db: Challenge room not found.")
+        // const challenge = {
+        //       roomId: roomId,
+        //       currentPlayer: personId,
+        //       currentQuestion: "",
+        //       currentAnswerLetter: "",
+        //       currentAnswerString: "",
+        //       players:[personId],
+        //       scores:[{
+        //         id: personId,
+        //         numCorrect: 0,
+        //         numQuestions: 0
+        //       }] 
+        //     };
+        // challenges.insertOne(challenge, function(err, result) {
+        //   if(err) throw err;
+        // });
       }
       else {
         challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:question, 
@@ -74,10 +77,26 @@ module.exports = {
           function (err, result) {
             if(err) throw err;
           }); 
+        category = result[0].category;
       }
-      return "----------CHALLENGE MODE----------\n\n"
+      let replyString = "----------CHALLENGE MODE----------\n"
+      replyString += await module.exports.getCategory(category)
+      
+      return replyString
       db.close();
     }
+    
+  },
+  
+  getCategory: async function(category) {
+    const response = await fetch(constants.CATEGORIES_URL);
+    const categories_object = await response.json();
+    let categoryName = "All";
+    if(category !== "") {
+      categoryName = categories_object.trivia_categories[Number(category) - 9].name;
+    }
+    let categoryString = "Category - " + categoryName + "\n\n";
+    return categoryString;
     
   },
   
@@ -221,7 +240,7 @@ module.exports = {
   return questionInfo;
   },
   
-  createChallenge: function(roomId, personId, firstName) {
+  createChallenge: function(roomId, personId, firstName, selectedCategory, email) {
     mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
       if(err) throw err;
       const triviaDatabase = db.db('trivia');
@@ -230,6 +249,7 @@ module.exports = {
         if (result.length === 0 || err) {
           const challenge = {
                 roomId: roomId,
+                category: selectedCategory,
                 currentPlayer: personId,
                 currentQuestion: "",
                 currentAnswerLetter: "",
@@ -237,6 +257,7 @@ module.exports = {
                 players:[personId],
                 scores:[{
                   id: personId,
+                  email: email,
                   numCorrect: 0,
                   numQuestions: 0
                 }] 
@@ -248,9 +269,10 @@ module.exports = {
           module.exports.setRoomStatus(roomId, true);
         }
         else {
-          challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:"", 
+          challenges.updateOne({roomId: roomId}, {$set: {category: selectedCategory, 
+                     currentPlayer: personId, currentQuestion:"",
                      currentAnswerLetter:"",currentAnswerString:"",players:[personId], 
-                      scores:[{id: personId, numCorrect: 0, numQuestions: 0}]}},
+                      scores:[{id: personId, email: email, numCorrect: 0, numQuestions: 0}]}},
             function (err, result) {
               if(err) throw err;
             });
@@ -335,6 +357,22 @@ module.exports = {
       else {
         console.log("get room status: Room status found.")
         return result[0].challengeModeOn;
+      }
+  },
+  
+   getChallenge: async function(roomId) {
+    let db;
+    db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true})
+    const triviaDatabase = db.db('trivia');
+      const rooms = triviaDatabase.collection('challenges');
+      const result = await rooms.find({roomId:roomId}).toArray();
+      if (result.length === 0) {
+        console.log("Get challenge: Room not found.")
+        return "";
+      }
+      else {
+        console.log("get room status: Room status found.")
+        return result;
       }
   },
   

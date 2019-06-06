@@ -9,6 +9,10 @@ module.exports = {
     
     helpMessage += "Hi, " + firstName + "! I'm Trivia Timmy! I will ask trivia questions"
     + " and you will have to choose from the 4 choices given.\n\n";
+    helpMessage += "There are two modes of play. First is open mode, where anyone can ask any amount of questions from any category.\n"
+    helpMessage += "Second is challenge mode, where players join a game where they each get 5 questions, and they can see who gets the highest score.\n"
+    helpMessage += "To start challenge mode: \'@Trivia challenge <category number> (optional)\'\n";
+    helpMessage += "To join a challenge that has been created: \'@Trivia join\'\n";
     helpMessage += "To get a question: \'@Trivia hit me <category number> (optional)\'\n";
     helpMessage += "To answer a question: \'@Trivia answer <letter choice>\'\n"
     helpMessage += "To see the categories: \'@Trivia categories\'\n";
@@ -40,7 +44,15 @@ module.exports = {
     const letters = ["A", "B", "C", "D"];
     const questionWords = ["Who", "What", "Where", "When", "Why", "How", "Of", "Which", "In", "The", "A", "This", 
                            "What's", "When's", "Where's", "Why's", "How's", "At", "Is", "Are", "To", "Whose", "Whom", "Painter"];
-    const selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
+    let selectedCategory;
+    if(challengeModeOn){
+      let challengeInfo = await utils.getChallenge(roomId);
+      selectedCategory = challengeInfo[0].category;
+      console.log("selected category: " + selectedCategory);
+    }
+    else{
+      selectedCategory = query.slice(query.indexOf('hit me') + 'hit me'.length).trim();
+    }
 
     let categoryString = "";
     if(selectedCategory !== "" && (isNaN(Number(selectedCategory)) || Number(selectedCategory) < 9 || Number(selectedCategory) > 32)){
@@ -125,15 +137,40 @@ module.exports = {
     }
   },
   
-  challenge: async function(bot, roomId, personId, firstName) {
-    utils.createChallenge(roomId, personId, firstName);
+  challenge: async function(bot, roomId, personId, query, firstName, challengeModeOn, email) {
+    const selectedCategory = query.slice(query.indexOf('challenge') + 'challenge'.length).trim();
+    let categoryString = "";
+    if(challengeModeOn) {
+      await bot.say("Challenge has already been created. Enter \'@Trivia hit me\' to begin.");
+      return true;
+    }
+    else if(selectedCategory !== "" && (isNaN(Number(selectedCategory)) || Number(selectedCategory) < 9 || Number(selectedCategory) > 32)){
+      await bot.say("Please select a valid category. Enter '@Trivia categories' to see the available categories.");
+      return false;
+    }
+    else if(Number(selectedCategory) >=9 && Number(selectedCategory) <= 32){
+      categoryString = "&category=" + selectedCategory;
+    }
+    
+    utils.createChallenge(roomId, personId, firstName, selectedCategory, email);
     await bot.say("A new challenge has been started! You've been added, " + firstName + ". Other players can join by entering \'@Trivia join\'.");
     return true;
   },
   
-  joinChallenge: async function(bot, roomId, personId, firstName) {
-    const joinString = await utils.addUserToChallenge(roomId, personId, firstName)
-    await bot.say(joinString)
+  joinChallenge: async function(bot, roomId, personId, firstName, email) {
+    const joinString = await utils.addUserToChallenge(roomId, personId, firstName, email);
+    await bot.say(joinString);
+  },
+  
+  check: async function(bot, roomId) {
+    const challenge = await utils.getChallenge(roomId);
+    let checkString = "-----Scores-----\n";
+    for(let i = 0; i < challenge[0].scores.length; i++) {
+      checkString += challenge[0].scores[i].email + ": "
+      checkString += challenge[0].scores[i].numCorrect + "/";
+      checkString += challenge[0].scores[i].numQuestions + "\n";
+    }
+    await bot.say(checkString);
   },
   
   quit: async function(bot, roomId) {
