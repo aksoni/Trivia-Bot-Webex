@@ -32,7 +32,7 @@ controller.on('message', async(bot, message) => {
         await hears.categories(bot);   
       }
       else if(query.substr(0, 'hit me'.length)=== 'hit me'){
-        questionAnswered = await hears.hitMe(bot, roomId, personId, query, firstName, questionAnswered);
+        questionAnswered = await hears.hitMe(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn);
       }
       else if(query.substr(0, 'answer'.length) === 'answer'){
         questionAnswered = await hears.answer(bot, roomId, personId, query, firstName, questionAnswered);

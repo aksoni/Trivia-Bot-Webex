@@ -14,34 +14,68 @@ module.exports = {
     return a;
   },
   
-  addQuestionToDB: function(roomId, personId, question, correctAnswerLetter, correctAnswerString) {
-    mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true}, function(err, db) {
-      if(err) throw err;
-      const triviaDatabase = db.db('trivia');
+  addQuestionToDB: async function(roomId, personId, question, correctAnswerLetter, correctAnswerString, challengeModeOn) {
+    let db;
+    db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true})
+    const triviaDatabase = db.db('trivia');
+    if(!challengeModeOn) {
       const rooms = triviaDatabase.collection('rooms');
-      rooms.find({roomId:roomId}).toArray(function(err, result) {
-        if (result.length === 0 || err) {
-          const room = {
-                roomId: roomId,
-                currentPlayer: personId,
-                currentQuestion: question,
-                currentAnswerLetter: correctAnswerLetter,
-                currentAnswerString: correctAnswerString,
-              };
-          rooms.insertOne(room, function(err, result) {
+      const result = rooms.find({roomId:roomId}).toArray()
+      if (result.length === 0) {
+        const room = {
+              roomId: roomId,
+              currentPlayer: personId,
+              currentQuestion: question,
+              currentAnswerLetter: correctAnswerLetter,
+              currentAnswerString: correctAnswerString,
+            };
+        await rooms.insertOne(room, function(err, result) {
+          if(err) throw err;
+        });
+      }
+      else {
+        await rooms.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:question, 
+                   currentAnswerLetter:correctAnswerLetter,currentAnswerString:correctAnswerString}},
+          function (err, result) {
             if(err) throw err;
-          });
-        }
-        else {
-          rooms.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:question, 
-                     currentAnswerLetter:correctAnswerLetter,currentAnswerString:correctAnswerString}},
-            function (err, result) {
-              if(err) throw err;
-            }); 
-        }
-        db.close(); 
-      });
-    });
+          }); 
+      }
+      db.close(); 
+      return "";
+    }
+    else {
+      console.log("Challenge mode is on.");
+      const challenges = triviaDatabase.collection('challenges');
+      const result = challenges.find({roomId:roomId}).toArray()
+      if (result.length === 0) {
+        const challenge = {
+              roomId: roomId,
+              currentPlayer: personId,
+              currentQuestion: "",
+              currentAnswerLetter: "",
+              currentAnswerString: "",
+              players:[personId],
+              scores:[{
+                id: personId,
+                numCorrect: 0,
+                numQuestions: 0
+              }] 
+            };
+        challenges.insertOne(challenge, function(err, result) {
+          if(err) throw err;
+        });
+      }
+      else {
+        challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:question, 
+                   currentAnswerLetter:correctAnswerLetter,currentAnswerString:correctAnswerString,}},
+          function (err, result) {
+            if(err) throw err;
+          }); 
+      }
+      return "----------CHALLENGE MODE----------\n\n"
+      db.close();
+    }
+    
   },
   
   updateUser: async function(roomId, personId, answeredCorrectly) {
@@ -51,7 +85,7 @@ module.exports = {
     let numQuestions;
     try {
       db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true});
-      let triviaDatabase = db.db('trivia');
+      const triviaDatabase = db.db('trivia');
       const users = triviaDatabase.collection('users');
       const result = await users.find({roomId:roomId, personId:personId}).toArray();
 
@@ -102,7 +136,7 @@ module.exports = {
     let db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true});
     let questionInfo;
     try {
-      let triviaDatabase = db.db('trivia');
+      const triviaDatabase = db.db('trivia');
       const rooms = triviaDatabase.collection('rooms');
       let result = await rooms.find({roomId:roomId}).toArray();
       if (result.length === 0) {
@@ -132,7 +166,12 @@ module.exports = {
                 currentQuestion: "",
                 currentAnswerLetter: "",
                 currentAnswerString: "",
-                allPlayers:[personId]
+                players:[personId],
+                scores:[{
+                  id: personId,
+                  numCorrect: 0,
+                  numQuestions: 0
+                }] 
               };
           challenges.insertOne(challenge, function(err, result) {
             if(err) throw err;
@@ -140,7 +179,8 @@ module.exports = {
         }
         else {
           challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:"", 
-                     currentAnswerLetter:"",currentAnswerString:"",allPlayers:[personId]}},
+                     currentAnswerLetter:"",currentAnswerString:"",players:[personId], 
+                      scores:[{id: personId, numCorrect: 0, numQuestions: 0}]}},
             function (err, result) {
               if(err) throw err;
             }); 
@@ -161,24 +201,24 @@ module.exports = {
       if (result.length === 0) {
         joinString = "Challenge in this room not found";
       }
-      else if(result[0].allPlayers.indexOf(personId) >= 0) {
+      else if(result[0].players.indexOf(personId) >= 0) {
         joinString = "You've joined the challenge already, " + firstName + "!";
         return joinString;
       }
       else {
         console.log("current players");
-        console.log(result[0].allPlayers.indexOf(personId))
+        console.log(result[0].players.indexOf(personId))
         console.log(result)
-        console.log(result[0].allPlayers);
-        const currentPlayers = result[0].allPlayers
+        console.log(result[0].players);
+        const currentPlayers = result[0].players
         console.log(personId)
         console.log(personId)
-        const allPlayers = currentPlayers.concat([personId])
+        const players = currentPlayers.concat([personId])
         console.log("all players")
-        console.log(allPlayers)
+        console.log(players)
          try {
             await challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:"", 
-                   currentAnswerLetter:"",currentAnswerString:"",allPlayers:allPlayers}},
+                   currentAnswerLetter:"",currentAnswerString:"",players:players}},
               function (err, result) {
                 if(err) console.log("update error in function");
               }

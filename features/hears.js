@@ -29,7 +29,7 @@ module.exports = {
     await bot.say(categories);
   },
   
-  hitMe: async function(bot, roomId, personId, query, firstName, questionAnswered){
+  hitMe: async function(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn){
     const letters = ["A", "B", "C", "D"];
     const questionWords = ["Who", "What", "Where", "When", "Why", "How", "Of", "Which", "In", "The", "A", "This", 
                            "What's", "When's", "Where's", "Why's", "How's", "At", "Is", "Are", "To", "Whose", "Whom", "Painter"];
@@ -59,13 +59,15 @@ module.exports = {
     const choices = [correctAnswerString].concat(incorrectStrings);
     const shuffledChoices = utils.shuffle(choices);
     const correctAnswerLetter = letters[shuffledChoices.indexOf(correctAnswerString)];
-    let questionString = firstName + ", " + question + "\n";
+    
+    
+    let questionString = await utils.addQuestionToDB(roomId, personId, question, correctAnswerLetter, correctAnswerString, challengeModeOn);
+    
+    questionString += firstName + ", " + question + "\n";
 
     for(let i = 0; i < choices.length; i++){
         questionString = questionString + "\n" + letters[i] + ") " + choices[i];
      }
-    
-    utils.addQuestionToDB(roomId, personId, question, correctAnswerLetter, correctAnswerString);
     
     await bot.say(questionString);
     
