@@ -8,6 +8,7 @@ module.exports = {
     const rooms = triviaDatabase.collection('openRooms');
     await rooms.drop();
     console.log("open rooms dropped");
+    db.close();
   },
   
   clearUsers: async function() {
@@ -16,6 +17,7 @@ module.exports = {
     const rooms = triviaDatabase.collection('users');
     await rooms.drop();
     console.log("users dropped");
+    db.close();
   },
   
   clearChallenges: async function() {
@@ -24,6 +26,7 @@ module.exports = {
     const rooms = triviaDatabase.collection('challenges');
     await rooms.drop();
     console.log("challenges dropped");
+    db.close();
   },
   
   clearStatuses: async function() {
@@ -32,6 +35,7 @@ module.exports = {
     const rooms = triviaDatabase.collection('roomStatus');
     await rooms.drop();
     console.log("room status dropped");
+    db.close();
   },
 
   checkOpenRoom: async function(roomId) {
@@ -47,7 +51,9 @@ module.exports = {
         console.log("Room found.");
         console.log(result);
       }
+      db.close();
     });
+
   },
 
   checkUsers: async function(personId) {

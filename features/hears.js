@@ -34,17 +34,29 @@ module.exports = {
     await bot.say(categories);
   },
   
-  hitMe: async function(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn){
-    if(challengeModeOn && !questionAnswered) {
-      await bot.say("No skipping questions, " + firstName + "!");
-      return false;
+  hitMe: async function(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn, challengeStarted){
+    
+    if(challengeModeOn) {
+      let status = await utils.getChallenge(roomId)
+      let totalQuestions = status[0].totalQuestions;
+      if(totalQuestions > 0 && !questionAnswered)
+      {
+        await bot.say("No skipping questions, " + firstName + "!");
+        return false;
+      }
     }
     if(challengeModeOn) {
       let personInfo = await utils.getPersonScore(roomId, personId);
+      console.log("PERSON INFO: " + personInfo);
+      if(personInfo.numQuestions === -1) {
+        await bot.say("You haven't joined the challenge yet, " + firstName + "! Type \'@Trivia join\' to enter the challenge.");
+        return questionAnswered;
+      }
       if(personInfo.numQuestions === constants.NUM_CHALLENGE_QUESTIONS){
         await bot.say("Your turn is finished, " + firstName + "! Next player type @Trivia hit me");
         return questionAnswered;
       }
+      
     }
     const letters = ["A", "B", "C", "D"];
     const questionWords = ["Who", "What", "Where", "When", "Why", "How", "Of", "Which", "In", "The", "A", "This", 
@@ -142,16 +154,16 @@ module.exports = {
     }
   },
   
-  challenge: async function(bot, roomId, personId, query, firstName, challengeModeOn, email) {
+  challenge: async function(bot, roomId, personId, query, firstName, challengeModeOn, questionAnswered, email) {
     const selectedCategory = query.slice(query.indexOf('challenge') + 'challenge'.length).trim();
     let categoryString = "";
     if(challengeModeOn) {
       await bot.say("Challenge has already been created. Enter \'@Trivia hit me\' to begin.");
-      return true;
+      return {challengeModeOn: challengeModeOn, questionAnswered: questionAnswered};
     }
     else if(selectedCategory !== "" && (isNaN(Number(selectedCategory)) || Number(selectedCategory) < 9 || Number(selectedCategory) > 32)){
       await bot.say("Please select a valid category. Enter '@Trivia categories' to see the available categories.");
-      return false;
+      return {challengeModeOn: false, questionAnswered: questionAnswered};
     }
     else if(Number(selectedCategory) >=9 && Number(selectedCategory) <= 32){
       categoryString = "&category=" + selectedCategory;
@@ -159,7 +171,7 @@ module.exports = {
     
     utils.createChallenge(roomId, personId, firstName, selectedCategory, email);
     await bot.say("A new challenge has been started! You've been added, " + firstName + ". Other players can join by entering \'@Trivia join\'.");
-    return true;
+    return {challengeModeOn: true, questionAnswered: false};
   },
   
   joinChallenge: async function(bot, roomId, personId, firstName, email) {
@@ -182,5 +194,6 @@ module.exports = {
   quit: async function(bot, roomId) {
     const replyString = await utils.quitChallenge(roomId);
     await bot.say(replyString);
+    return false;
   }
 }

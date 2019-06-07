@@ -72,7 +72,9 @@ module.exports = {
         // });
       }
       else {
-        challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:question, 
+        let numQuestions = result[0].totalQuestions;
+        numQuestions++;
+        challenges.updateOne({roomId: roomId}, {$set: {totalQuestions: numQuestions, currentPlayer: personId, currentQuestion:question, 
                    currentAnswerLetter:correctAnswerLetter,currentAnswerString:correctAnswerString,}},
           function (err, result) {
             if(err) throw err;
@@ -149,6 +151,7 @@ module.exports = {
         }
         userInfo = {numCorrect: numCorrect, numQuestions};
         let replyString = "You have now answered " + userInfo.numCorrect + " out of " + userInfo.numQuestions + " questions correctly.";
+        db.close();
         return replyString;
       }
       else {
@@ -199,13 +202,14 @@ module.exports = {
         if(numQuestions === constants.NUM_CHALLENGE_QUESTIONS) {
           replyString += "\nYou've finished your turn, " + firstName + "! You finished with a final score of " + numCorrect + "!";
         }
+        db.close();
         return replyString;
       }
     }
     finally {
         db.close();
     }   
-    return userInfo;
+   // return userInfo;
   },
   
   getQuestionInfo: async function(roomId, challengeModeOn) {
@@ -259,6 +263,7 @@ module.exports = {
                 currentAnswerLetter: "",
                 currentAnswerString: "",
                 players:[personId],
+                totalQuestions: 0,
                 scores:[{
                   id: personId,
                   email: email,
@@ -275,7 +280,7 @@ module.exports = {
         else {
           challenges.updateOne({roomId: roomId}, {$set: {category: selectedCategory, 
                      currentPlayer: personId, currentQuestion:"",
-                     currentAnswerLetter:"",currentAnswerString:"",players:[personId], 
+                     currentAnswerLetter:"",currentAnswerString:"",players:[personId], totalQuestions: 0,
                       scores:[{id: personId, email: email, numCorrect: 0, numQuestions: 0}]}},
             function (err, result) {
               if(err) throw err;
@@ -315,7 +320,11 @@ module.exports = {
         console.log(players)
          try {
             let scores = result[0].scores;
-            let newScores = scores.concat([{id: personId, email: email, numCorrect: 0, numQuestions: 0}])
+            
+            let newScores = scores.concat([{id: personId, email: email, numCorrect: 0, numQuestions: 0}]);
+            for(let i = 0; i < newScores.length; i++) {
+              console.log(newScores[i]);
+            }
             await challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:"", 
                    currentAnswerLetter:"",currentAnswerString:"",players:players,scores:newScores}},
               function (err, result) {
@@ -353,15 +362,18 @@ module.exports = {
         console.log("Get room status: Room status not found.")
         const room = {
               roomId: roomId,
-              challengeModeOn: false
+              challengeModeOn: false,
+              questionAnswered: false
             };
         await rooms.insertOne(room, function(err, result) {
           if(err) throw err;
         });
+        db.close();
         return room.challengeModeOn;
       }
       else {
-        console.log("get room status: Room status found.")
+        console.log("get room status: Room status found.");
+        db.close();
         return result[0].challengeModeOn;
       }
   },
@@ -374,10 +386,12 @@ module.exports = {
       const result = await rooms.find({roomId:roomId}).toArray();
       if (result.length === 0) {
         console.log("Get challenge: Room not found.")
+        db.close();
         return "";
       }
       else {
-        console.log("get room status: Room status found.")
+        console.log("get room status: Room status found.");
+        db.close();
         return result;
       }
   },
@@ -397,6 +411,8 @@ module.exports = {
         await rooms.updateOne({roomId: roomId}, {$set: {challengeModeOn: challengeModeOn}});
         console.log("Challenge status changed to " + challengeModeOn);
     }
+    
+    db.close();
   },
   
   quitChallenge: async function(roomId) {
@@ -412,19 +428,25 @@ module.exports = {
     const result = await challenge.find({roomId:roomId}).toArray();
     if(result.length === 0) {
       console.log("Challenge not found when updating user.")
+      db.close();
+      return {numCorrect: -1, numQuestion: -1};
     }
     else {
       console.log("Challenge result")
       console.log(result)
       for(let i = 0; i < result[0].scores.length; i++) {
+        console.log("Scores: " + result[0].scores[i].id);
         if(result[0].scores[i].id === personId) {
           console.log("found person " + personId);
           let numCorrect = result[0].scores[i].numCorrect;
           let numQuestions = result[0].scores[i].numQuestions;
+          db.close();
           return {numCorrect: numCorrect, numQuestions: numQuestions};
         }
-      return {numCorrect: 0, numQuestion: 0};
       }
+      console.log("person not found in scores")
+      db.close();
+      return {numCorrect: -1, numQuestions: -1};
     }
   },
   

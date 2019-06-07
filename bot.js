@@ -41,13 +41,17 @@ controller.on('message', async(bot, message) => {
         questionAnswered = await hears.answer(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn);
       }
       else if(query.substr(0, 'challenge'.length) === "challenge"){// && personId === process.env.userId){
-        challengeModeOn = await hears.challenge(bot, roomId, personId, query, firstName, challengeModeOn, email);
+        console.log("Heard challenge, challengeModeOn: " + challengeModeOn);
+        let status = await hears.challenge(bot, roomId, personId, query, firstName, challengeModeOn, questionAnswered, email);
+        challengeModeOn = status.challengeModeOn;
+        questionAnswered = status.questionAnswered;
       }
       else if(challengeModeOn && query === "join"){// && personId === process.env.userId){
         await hears.joinChallenge(bot, roomId, personId, firstName, email)      
       }
       else if(challengeModeOn && query === "quit" && personId === process.env.userId){
-        await hears.quit(bot, roomId);
+        challengeModeOn = await hears.quit(bot, roomId);
+        console.log("quit challenge: challengeModeOn: " + challengeModeOn);
       }
       else if(challengeModeOn && query === "check"){// && personId === process.env.userId){
         await hears.check(bot, roomId);
