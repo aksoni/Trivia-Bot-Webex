@@ -275,7 +275,7 @@ module.exports = {
             if(err) throw err;
           });
           
-          module.exports.setRoomStatus(roomId, true);
+          module.exports.setRoomStatus(roomId, true, false, false);
         }
         else {
           challenges.updateOne({roomId: roomId}, {$set: {category: selectedCategory, 
@@ -285,7 +285,7 @@ module.exports = {
             function (err, result) {
               if(err) throw err;
             });
-          module.exports.setRoomStatus(roomId, true);
+          module.exports.setRoomStatus(roomId, true, false, false);
         }
         db.close(); 
       });
@@ -363,18 +363,19 @@ module.exports = {
         const room = {
               roomId: roomId,
               challengeModeOn: false,
-              questionAnswered: false
+              questionAnswered: false,
+              challengeStarted: false
             };
         await rooms.insertOne(room, function(err, result) {
           if(err) throw err;
         });
         db.close();
-        return room.challengeModeOn;
+        return {challengeModeOn: room.challengeModeOn, questionAnswered: room.questionAnswered, challengeStarted: room.challengeStarted};
       }
       else {
         console.log("get room status: Room status found.");
         db.close();
-        return result[0].challengeModeOn;
+        return {challengeModeOn: result[0].challengeModeOn, questionAnswered: result[0].questionAnswered, challengeStarted: result[0].challengeStarted};
       }
   },
   
@@ -390,13 +391,13 @@ module.exports = {
         return "";
       }
       else {
-        console.log("get room status: Room status found.");
+        console.log("get challenge status: challenge found.");
         db.close();
         return result;
       }
   },
   
-  setRoomStatus: async function(roomId, challengeModeOn) {
+  setRoomStatus: async function(roomId, challengeModeOn, questionAnswered, challengeStarted) {
     let db;
     db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true})
     const triviaDatabase = db.db('trivia');
@@ -408,15 +409,17 @@ module.exports = {
       console.log("Set room status: Room status not found.");
     }
     else {
-        await rooms.updateOne({roomId: roomId}, {$set: {challengeModeOn: challengeModeOn}});
-        console.log("Challenge status changed to " + challengeModeOn);
+        await rooms.updateOne({roomId: roomId}, {$set: {challengeModeOn: challengeModeOn, questionAnswered: questionAnswered, challengeStarted: challengeStarted}});
+        console.log("Challenge mode on changed to " + challengeModeOn);
+        console.log("Question answered changed to " + questionAnswered);
+        console.log("Challenge started changed to " + challengeStarted);
     }
     
     db.close();
   },
   
   quitChallenge: async function(roomId) {
-    await module.exports.setRoomStatus(roomId, false);
+    await module.exports.setRoomStatus(roomId, false, false, false);
     return "Challenge has been quit.";
   },
   

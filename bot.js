@@ -20,14 +20,23 @@ const controller = new Botkit({
 });
 
 controller.on('message', async(bot, message) => {
-    if(message.text){
+    if(message.text) {
+      
       const query = message.text.trim().toLowerCase();
       const email = message.personEmail;
       const roomId = message.roomId;
       const personId = message.personId;
+      
       const firstName = email.charAt(0).toUpperCase() + email.substr(1, email.indexOf('.') - 1);
-      let challengeModeOn = await utils.getRoomStatus(roomId);
-      console.log("Room status: ", challengeModeOn);
+      console.log(email + ": " + message.text);
+      console.log(message.roomId)
+      let roomStatus = await utils.getRoomStatus(roomId);
+      let challengeModeOn = roomStatus.challengeModeOn;
+      let questionAnswered = roomStatus.questionAnswered;
+      let challengeStarted = roomStatus.challengeStarted;
+      console.log("Challenge mode on status: ", challengeModeOn);
+      console.log("QuestionAnswered status: ", questionAnswered);
+      console.log("Challenge started status: ", challengeStarted);
       if(query.includes('help')) {
         await hears.help(bot, firstName);
       }
@@ -35,16 +44,16 @@ controller.on('message', async(bot, message) => {
         await hears.categories(bot);   
       }
       else if(query.substr(0, 'hit me'.length)=== 'hit me'){
-        questionAnswered = await hears.hitMe(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn);
+        await hears.hitMe(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn, challengeStarted);
       }
       else if(query.substr(0, 'answer'.length) === 'answer'){
-        questionAnswered = await hears.answer(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn);
+        await hears.answer(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn, challengeStarted);
       }
       else if(query.substr(0, 'challenge'.length) === "challenge"){// && personId === process.env.userId){
         console.log("Heard challenge, challengeModeOn: " + challengeModeOn);
-        let status = await hears.challenge(bot, roomId, personId, query, firstName, challengeModeOn, questionAnswered, email);
-        challengeModeOn = status.challengeModeOn;
-        questionAnswered = status.questionAnswered;
+        await hears.challenge(bot, roomId, personId, query, firstName, challengeModeOn, questionAnswered, email);
+        // challengeModeOn = status.challengeModeOn;
+        // questionAnswered = status.questionAnswered;
       }
       else if(challengeModeOn && query === "join"){// && personId === process.env.userId){
         await hears.joinChallenge(bot, roomId, personId, firstName, email)      

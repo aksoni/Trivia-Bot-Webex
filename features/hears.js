@@ -39,10 +39,12 @@ module.exports = {
     if(challengeModeOn) {
       let status = await utils.getChallenge(roomId)
       let totalQuestions = status[0].totalQuestions;
-      if(totalQuestions > 0 && !questionAnswered)
+      console.log(totalQuestions);
+      console.log(questionAnswered)
+      if(challengeStarted && !questionAnswered)
       {
         await bot.say("No skipping questions, " + firstName + "!");
-        return false;
+        return;
       }
     }
     if(challengeModeOn) {
@@ -50,11 +52,11 @@ module.exports = {
       console.log("PERSON INFO: " + personInfo);
       if(personInfo.numQuestions === -1) {
         await bot.say("You haven't joined the challenge yet, " + firstName + "! Type \'@Trivia join\' to enter the challenge.");
-        return questionAnswered;
+        return;
       }
       if(personInfo.numQuestions === constants.NUM_CHALLENGE_QUESTIONS){
         await bot.say("Your turn is finished, " + firstName + "! Next player type @Trivia hit me");
-        return questionAnswered;
+        return;
       }
       
     }
@@ -74,7 +76,7 @@ module.exports = {
     let categoryString = "";
     if(selectedCategory !== "" && (isNaN(Number(selectedCategory)) || Number(selectedCategory) < 9 || Number(selectedCategory) > 32)){
       await bot.say("Please select a valid category. Enter '@Trivia categories' to see the available categories.");
-      return questionAnswered;
+      return;
     }
     else if(Number(selectedCategory) >=9 && Number(selectedCategory) <= 32){
       categoryString = "&category=" + selectedCategory;
@@ -107,18 +109,21 @@ module.exports = {
     
     await bot.say(questionString);
     
-    return false;
+    if(challengeModeOn)
+      challengeStarted = true
+    questionAnswered = false
+    await utils.setRoomStatus(roomId, challengeModeOn, questionAnswered, challengeStarted);
   },
   
-  answer: async function(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn) {
+  answer: async function(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn, challengeStarted) {
     const letters = ["A", "B", "C", "D"];
     if(letters.indexOf(query.substr('answer'.length).trim().toUpperCase()) < 0){
       await bot.say("Invalid answer choice. Please select A, B, C, or D.");
-      return false;
+      return;
     }
     if(questionAnswered){
       await bot.say("This question has already been answered, " + firstName + "! Enter \'@Trivia hit me\' to get another question.")
-      return true;
+      return;
     }
     
     const questionInfo = await utils.getQuestionInfo(roomId, challengeModeOn);
@@ -127,7 +132,7 @@ module.exports = {
     
     if(originalPerson !== personId) {
       await bot.say("Sorry, " + firstName + ", it's not your turn!");
-      return false;
+      return;
     }
     else {
       let userInfo;
@@ -150,7 +155,8 @@ module.exports = {
       //replyString += "You have now answered " + userInfo.numCorrect + " out of " + userInfo.numQuestions + " questions correctly.";
       
       await bot.say(replyString);
-      return true;
+      questionAnswered = true;
+      await utils.setRoomStatus(roomId, challengeModeOn, questionAnswered, challengeStarted);
     }
   },
   
