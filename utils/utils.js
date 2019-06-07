@@ -172,6 +172,10 @@ module.exports = {
             }
           }
           
+          if(!personFound) {
+            console.log("Person not found.");
+          }
+          
           if(answeredCorrectly) {
             numCorrect++;
           }
@@ -283,7 +287,7 @@ module.exports = {
     });
   },
   
-  addUserToChallenge: async function(roomId, personId, firstName) {
+  addUserToChallenge: async function(roomId, personId, firstName, email) {
     var joinString = "Join failure.";
     let db;
     try {
@@ -310,8 +314,10 @@ module.exports = {
         console.log("all players")
         console.log(players)
          try {
+            let scores = result[0].scores;
+            let newScores = scores.concat([{id: personId, email: email, numCorrect: 0, numQuestions: 0}])
             await challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:"", 
-                   currentAnswerLetter:"",currentAnswerString:"",players:players}},
+                   currentAnswerLetter:"",currentAnswerString:"",players:players,scores:newScores}},
               function (err, result) {
                 if(err) console.log("update error in function");
               }
@@ -417,8 +423,9 @@ module.exports = {
           let numQuestions = result[0].scores[i].numQuestions;
           return {numCorrect: numCorrect, numQuestions: numQuestions};
         }
+      return {numCorrect: 0, numQuestion: 0};
       }
     }
-  } 
+  },
   
 }

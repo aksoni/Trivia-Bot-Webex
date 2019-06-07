@@ -1,6 +1,7 @@
 const utils = require('../utils/utils.js');
 const atob = require('atob');
 const constants = require('../lib/constants.js');
+const emailConverter = require('../utils/emailConverter.js');
 
 module.exports = {
   
@@ -9,8 +10,8 @@ module.exports = {
     
     helpMessage += "Hi, " + firstName + "! I'm Trivia Timmy! I will ask trivia questions"
     + " and you will have to choose from the 4 choices given.\n\n";
-    helpMessage += "There are two modes of play. First is open mode, where anyone can ask any amount of questions from any category.\n"
-    helpMessage += "Second is challenge mode, where players join a game where they each get 5 questions, and they can see who gets the highest score.\n"
+    helpMessage += "There are two modes of play. First is open mode, where anyone can freely ask questions from any category.\n"
+    helpMessage += "Second is challenge mode, where each player gets 5 turns to answer trivia questions.\n\n"
     helpMessage += "To start challenge mode: \'@Trivia challenge <category number> (optional)\'\n";
     helpMessage += "To join a challenge that has been created: \'@Trivia join\'\n";
     helpMessage += "To get a question: \'@Trivia hit me <category number> (optional)\'\n";
@@ -34,6 +35,10 @@ module.exports = {
   },
   
   hitMe: async function(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn){
+    if(challengeModeOn && !questionAnswered) {
+      await bot.say("No skipping questions, " + firstName + "!");
+      return false;
+    }
     if(challengeModeOn) {
       let personInfo = await utils.getPersonScore(roomId, personId);
       if(personInfo.numQuestions === constants.NUM_CHALLENGE_QUESTIONS){
@@ -166,7 +171,8 @@ module.exports = {
     const challenge = await utils.getChallenge(roomId);
     let checkString = "-----Scores-----\n";
     for(let i = 0; i < challenge[0].scores.length; i++) {
-      checkString += challenge[0].scores[i].email + ": "
+      let name = await emailConverter.emailToNickname(challenge[0].scores[i].email);
+      checkString += name + ": "
       checkString += challenge[0].scores[i].numCorrect + "/";
       checkString += challenge[0].scores[i].numQuestions + "\n";
     }

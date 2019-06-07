@@ -44,9 +44,9 @@ controller.on('message', async(bot, message) => {
         challengeModeOn = await hears.challenge(bot, roomId, personId, query, firstName, challengeModeOn, email);
       }
       else if(challengeModeOn && query === "join"){// && personId === process.env.userId){
-        await hears.joinChallenge(bot, roomId, personId, firstName)      
+        await hears.joinChallenge(bot, roomId, personId, firstName, email)      
       }
-      else if(challengeModeOn && query === "quit"){// && personId === process.env.userId){
+      else if(challengeModeOn && query === "quit" && personId === process.env.userId){
         await hears.quit(bot, roomId);
       }
       else if(challengeModeOn && query === "check"){// && personId === process.env.userId){
