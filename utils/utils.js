@@ -325,8 +325,7 @@ module.exports = {
             for(let i = 0; i < newScores.length; i++) {
               console.log(newScores[i]);
             }
-            await challenges.updateOne({roomId: roomId}, {$set: {currentPlayer: personId, currentQuestion:"", 
-                   currentAnswerLetter:"",currentAnswerString:"",players:players,scores:newScores}},
+            await challenges.updateOne({roomId: roomId}, {$set: {players:players,scores:newScores}},
               function (err, result) {
                 if(err) console.log("update error in function");
               }
