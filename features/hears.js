@@ -116,8 +116,15 @@ module.exports = {
   },
   
   answer: async function(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn, challengeStarted) {
+    if(challengeModeOn && !challengeStarted) {
+      await bot.say("No question has been asked yet, " + firstName + "! Enter \'@Trivia hit me\' to start the challenge and get a question.");
+      return;
+    }
+    
     const letters = ["A", "B", "C", "D"];
-    if(letters.indexOf(query.substr('answer'.length).trim().toUpperCase()) < 0){
+    //if(letters.indexOf(query.substr('answer'.length).trim().toUpperCase()) < 0){
+    const selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim().toUpperCase();
+    if(letters.indexOf(selectedChoice) < 0){
       await bot.say("Invalid answer choice. Please select A, B, C, or D.");
       return;
     }
@@ -139,7 +146,7 @@ module.exports = {
       const correctAnswerLetter = questionInfo.correctAnswerLetter;
       const correctAnswerString = questionInfo.correctAnswerString;
       let replyString = "";
-      const selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim().toUpperCase();
+      //const selectedChoice = query.slice(query.indexOf('answer') + 'answer'.length).trim().toUpperCase();
       if(selectedChoice === correctAnswerLetter) {
         replyString += "Good job, " + firstName + ", " + correctAnswerLetter + ") " + correctAnswerString + " is correct!\n";
        // userInfo = await utils.updateUser(roomId, personId, true, challengeModeOn);

@@ -40,29 +40,29 @@ controller.on('message', async(bot, message) => {
       if(query.includes('help')) {
         await hears.help(bot, firstName);
       }
-      else if(query === "categories"){
+      else if(query.includes("categories")){
         await hears.categories(bot);   
       }
-      else if(query.substr(0, 'hit me'.length)=== 'hit me'){
+      else if(query.includes('hit me')){ //query.substr(0, 'hit me'.length)=== 'hit me'){
         await hears.hitMe(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn, challengeStarted);
       }
-      else if(query.substr(0, 'answer'.length) === 'answer'){
+      else if(query.includes('answer')){//query.substr(0, 'answer'.length) === 'answer'){
         await hears.answer(bot, roomId, personId, query, firstName, questionAnswered, challengeModeOn, challengeStarted);
       }
-      else if(query.substr(0, 'challenge'.length) === "challenge"){// && personId === process.env.userId){
+      else if(query.includes('challenge')){//query.substr(0, 'challenge'.length) === "challenge"){// && personId === process.env.userId){
         console.log("Heard challenge, challengeModeOn: " + challengeModeOn);
         await hears.challenge(bot, roomId, personId, query, firstName, challengeModeOn, questionAnswered, email);
         // challengeModeOn = status.challengeModeOn;
         // questionAnswered = status.questionAnswered;
       }
-      else if(challengeModeOn && query === "join"){// && personId === process.env.userId){
+      else if(challengeModeOn && query.includes("join")){//query === "join"){// && personId === process.env.userId){
         await hears.joinChallenge(bot, roomId, personId, firstName, email)      
       }
-      else if(challengeModeOn && query === "quit" && personId === process.env.userId){
+      else if(challengeModeOn && query.includes("quit")){// && personId === process.env.userId){
         challengeModeOn = await hears.quit(bot, roomId);
         console.log("quit challenge: challengeModeOn: " + challengeModeOn);
       }
-      else if(challengeModeOn && query === "check"){// && personId === process.env.userId){
+      else if(challengeModeOn && query.includes("check")){// && personId === process.env.userId){
         await hears.check(bot, roomId);
       }
       else if(query === "checkroom"  && personId === process.env.userId) {
@@ -96,4 +96,7 @@ controller.on('message', async(bot, message) => {
         await bot.say("Please enter a valid command. Enter \'@Trivia help\' to see the list of commands.");
       }
     }
+  else{
+    await bot.say("Please try again.");
+  }
 });
