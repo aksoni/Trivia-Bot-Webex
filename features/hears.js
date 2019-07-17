@@ -133,7 +133,19 @@ module.exports = {
       return;
     }
     
-    const questionInfo = await utils.getQuestionInfo(roomId, challengeModeOn);
+    let questionInfo;
+    try {
+      questionInfo = await utils.getQuestionInfo(roomId, challengeModeOn);
+    }
+    catch(e) {
+      await bot.say("Error in answering question. Please enter \'@Trivia hit me\' to get another question. ");
+      return;
+    }
+    
+    if(questionInfo === "") {
+      await bot.say("No question has been asked yet, " + firstName + "! Enter \'@Trivia hit me\' to get a question.");
+      return;
+    }
     
     const originalPerson = questionInfo.personId;
     

@@ -52,8 +52,6 @@ controller.on('message', async(bot, message) => {
       else if(query.includes('challenge')){//query.substr(0, 'challenge'.length) === "challenge"){// && personId === process.env.userId){
         console.log("Heard challenge, challengeModeOn: " + challengeModeOn);
         await hears.challenge(bot, roomId, personId, query, firstName, challengeModeOn, questionAnswered, email);
-        // challengeModeOn = status.challengeModeOn;
-        // questionAnswered = status.questionAnswered;
       }
       else if(challengeModeOn && query.includes("join")){//query === "join"){// && personId === process.env.userId){
         await hears.joinChallenge(bot, roomId, personId, firstName, email)      

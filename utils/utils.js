@@ -214,7 +214,7 @@ module.exports = {
   
   getQuestionInfo: async function(roomId, challengeModeOn) {
     let db = await mongodb.MongoClient.connect(constants.MONGO_URI, {useNewUrlParser: true});
-    let questionInfo;
+    let questionInfo = "";
     try {
       const triviaDatabase = db.db('trivia');
       if(!challengeModeOn) {
